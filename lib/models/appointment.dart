@@ -1,87 +1,62 @@
 class Appointment {
   final String id;
-  final String doctorId;
-  final String doctorName;
-  final String patientId;
-  final String patientName;
+  final String userId;
+  final String providerId;
+  final String username;    
+  final String providerName;  
   final DateTime date;
-  final String time;
+  final String startTime;
+  final String endTime;
+  final int duration;
+  final String notes;
   final String status;
-  final String reason;
-  final String location;
-  final double price;
+  final double cost;
 
   Appointment({
     required this.id,
-    required this.doctorId,
-    required this.doctorName,
-    required this.patientId,
-    required this.patientName,
+    required this.userId,
+    required this.providerId,
+    required this.username,   
+    required this.providerName,  
     required this.date,
-    required this.time,
+    required this.startTime,
+    required this.endTime,
+    required this.duration,
+    required this.notes,
     required this.status,
-    required this.reason,
-    required this.location,
-    required this.price,
+    required this.cost,
   });
-
-  factory Appointment.fromJson(Map<String, dynamic> json) {
-    return Appointment(
-      id: json['id'],
-      doctorId: json['doctorId'],
-      doctorName: json['doctorName'],
-      patientId: json['patientId'],
-      patientName: json['patientName'],
-      date: DateTime.parse(json['date']),
-      time: json['time'],
-      status: json['status'],
-      reason: json['reason'],
-      location: json['location'],
-      price: json['price'].toDouble(),
-    );
-  }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'doctorId': doctorId,
-      'doctorName': doctorName,
-      'patientId': patientId,
-      'patientName': patientName,
+      'userId': userId,
+      'providerId': providerId,
+      'username': username,    
+      'providerName': providerName,  
       'date': date.toIso8601String(),
-      'time': time,
+      'startTime': startTime,
+      'endTime': endTime,
+      'duration': duration,
+      'notes': notes,
       'status': status,
-      'reason': reason,
-      'location': location,
-      'price': price,
+      'cost': cost,
     };
   }
 
-  Appointment copyWith({
-    String? id,
-    String? doctorId,
-    String? doctorName,
-    String? patientId,
-    String? patientName,
-    DateTime? date,
-    String? time,
-    String? status,
-    String? reason,
-    String? location,
-    double? price,
-  }) {
+  factory Appointment.fromJson(Map<String, dynamic> json) {
     return Appointment(
-      id: id ?? this.id,
-      doctorId: doctorId ?? this.doctorId,
-      doctorName: doctorName ?? this.doctorName,
-      patientId: patientId ?? this.patientId,
-      patientName: patientName ?? this.patientName,
-      date: date ?? this.date,
-      time: time ?? this.time,
-      status: status ?? this.status,
-      reason: reason ?? this.reason,
-      location: location ?? this.location,
-      price: price ?? this.price,
+      id: json['\$id'] ?? '',
+      userId: json['user_id'],
+      providerId: json['provider_id'],
+      username: json['username'],    
+      providerName: json['providerName'],  
+      date: DateTime.parse(json['date']),
+      startTime: json['start_time'],
+      endTime: json['end_time'],
+      duration: json['duration'],
+      notes: json['notes'],
+      status: json['status'],
+      cost: json['cost'],
     );
   }
 }

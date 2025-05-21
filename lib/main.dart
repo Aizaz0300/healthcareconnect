@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:appwrite/appwrite.dart';
 import '/theme/app_theme.dart';
 import '/screens/role_selection_screen.dart';
-import 'services/appwrite_auth_service.dart';
+import 'services/appwrite_service.dart';
 import 'providers/user_provider.dart';
+import 'providers/service_provider_provider.dart';
 
 void main() {
-  final client = Client();
-  final storage = Storage(client);
   final appwriteService = AppwriteService();
 
   runApp(
@@ -16,6 +14,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         Provider.value(value: appwriteService),
+        ChangeNotifierProvider(create: (_) => ServiceProviderProvider()),
       ],
       child: const MyApp(),
     ),

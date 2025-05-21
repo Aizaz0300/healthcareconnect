@@ -1,12 +1,11 @@
 import 'dart:math' show min;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import '/constants/app_colors.dart';
 import '/models/service_provider.dart';
 import '/models/review.dart';
 import '/widgets/gallery_dialog.dart';
-import '/widgets/rating_bar.dart';
-import '/widgets/review_card.dart';
 import '/widgets/reviews_sheet.dart';
 import '/screens/chat/chat_screen.dart';
 import 'appointment_booking_screen.dart';
@@ -18,7 +17,7 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     Review(
       id: '1',
       userName: 'John Doe',
-      userImage: 'https://example.com/user1.jpg',
+      userImage: 'https://randomuser.me/api/portraits/men/52.jpg',
       rating: 5.0,
       comment: 'Excellent service, very professional.',
       date: DateTime.now().subtract(const Duration(days: 2)),
@@ -26,7 +25,7 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     Review(
       id: '2',
       userName: 'Jane Smith',
-      userImage: 'https://example.com/user2.jpg',
+      userImage: 'https://randomuser.me/api/portraits/women/63.jpg',
       rating: 4.5,
       comment: 'Great experience, would recommend.',
       date: DateTime.now().subtract(const Duration(days: 5)),
@@ -55,15 +54,15 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                   _buildGallery(),
                 ],
                 const SizedBox(height: 24),
-                _buildServicesSection(),
-                const SizedBox(height: 24),
                 _buildAboutSection(),
                 const SizedBox(height: 24),
                 _buildExperienceSection(),
                 const SizedBox(height: 24),
+                _buildServicesSection(),
+                const SizedBox(height: 24),
                 _buildCredentials(),
                 const SizedBox(height: 24),
-                _buildLicenseSection(),
+                _buildLicenseSection(context),
                 const SizedBox(height: 24),
                 _buildAvailabilitySection(),
                 const SizedBox(height: 24),
@@ -86,8 +85,6 @@ class ServiceProviderProfileScreen extends StatelessWidget {
       expandedHeight: 40,
       pinned: true,
       backgroundColor: AppColors.background,
-
-
     );
   }
 
@@ -106,33 +103,44 @@ class ServiceProviderProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary, width: 2),
-                  image: provider.imageUrl.isNotEmpty
-                      ? DecorationImage(
-                    image: NetworkImage(provider.imageUrl),
-                    fit: BoxFit.cover,
-                  )
+              Hero(
+                tag: 'provider-${provider.id}',
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primary, width: 2),
+                    image: provider.imageUrl.isNotEmpty
+                        ? DecorationImage(
+                            image: CachedNetworkImageProvider(provider.imageUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: provider.imageUrl.isEmpty
+                      ? const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: AppColors.primary,
+                        )
                       : null,
                 ),
-                child: provider.imageUrl.isEmpty
-                    ? const Icon(
-                  Icons.person,
-                  size: 40,
-                  color: AppColors.primary,
-                )
-                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -142,18 +150,23 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                     Text(
                       provider.name,
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      provider.specialization,
+                      provider.services[0],
                       style: const TextStyle(
                         fontSize: 16,
                         color: AppColors.primary,
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -161,14 +174,14 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                         const Icon(Icons.star, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          provider.rating.toString(),
+                          provider.rating.toStringAsFixed(1),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
                         ),
                         Text(
-                          ' (${provider.reviewCount} reviews)',
+                          ' (${provider.reviewCount})',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
@@ -181,39 +194,53 @@ class ServiceProviderProfileScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Colors.grey.shade300,
+                  Colors.grey.shade300,
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.2, 0.8, 1.0],
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          _buildInfoBar(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildInfoBarItem(
-            Icons.work_outline,
-            '${provider.experience} exp',
-            AppColors.primary,
-          ),
-          _buildVerticalDivider(),
-          _buildInfoBarItem(
-            Icons.location_on_outlined,
-            provider.location,
-            Colors.redAccent,
-          ),
-          _buildVerticalDivider(),
-          _buildInfoBarItem(
-            Icons.attach_money,
-            '\$${provider.consultationFee}',
-            Colors.green,
+          // Add the location with an icon below the divider
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.location_on,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  provider.address.isNotEmpty
+                      ? provider.address
+                      : "Location not available",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -451,93 +478,253 @@ class ServiceProviderProfileScreen extends StatelessWidget {
       title: 'Certifications',
       icon: Icons.school_outlined,
       content: Column(
-        children: provider.credentials.map((credential) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.verified_outlined,
-                  color: AppColors.primary,
-                  size: 20,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (provider.certifications.isEmpty)
+            Center(
+              child: Text(
+                'No certifications uploaded',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        credential.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+              ),
+            )
+          else
+            SizedBox(
+              height: 200,
+              child: Scrollbar(
+                thickness: 6, // Width of the scrollbar
+                radius: const Radius.circular(8), // Rounded corners
+                thumbVisibility: true, // Always show the scrollbar
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 8), // Add padding for the scrollbar
+                  itemCount: provider.certifications.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      width: 160,
+                      margin: EdgeInsets.only(
+                        right: index != provider.certifications.length - 1 ? 12 : 0,
+                      ),
+                      child: GestureDetector(
+                        onTap: () => _showCertificateViewer(
+                          context,
+                          provider.certifications[index],
+                          index,
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.grey[200]!,
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.network(
+                                  provider.certifications[index],
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      color: Colors.grey[100],
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded /
+                                                  loadingProgress.expectedTotalBytes!
+                                              : null,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[100],
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.error_outline,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                Positioned(
+                                  right: 8,
+                                  bottom: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Icon(
+                                      Icons.zoom_in,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${credential.institute} • ${credential.year}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-                if (credential.certificationUrl != null)
-                  IconButton(
-                    icon: const Icon(Icons.visibility_outlined),
-                    onPressed: () => _launchUrl(credential.certificationUrl!),
-                    color: AppColors.primary,
-                    iconSize: 20,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-              ],
+              ),
             ),
-          );
-        }).toList(),
+        ],
       ),
     );
   }
 
-  Widget _buildLicenseSection() {
-    // Assuming we add license information to the provider model
-    final licenseInfo = {
-      'licenseNo': 'LIC-2023-78945',
-      'issuedBy': 'State Medical Board',
-      'validUntil': 'December 31, 2025',
-      'status': 'Active',
-    };
-
-    return _buildSectionContainer(
-      title: 'License Information',
-      icon: Icons.badge_outlined,
-      content: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
-        ),
-        child: Column(
+  void _showCertificateViewer(BuildContext context, String imageUrl, int initialIndex) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            _buildLicenseRow('License No', licenseInfo['licenseNo']!),
-            _buildLicenseRow('Issued By', licenseInfo['issuedBy']!),
-            _buildLicenseRow('Valid Until', licenseInfo['validUntil']!),
-            _buildLicenseRow('Status', licenseInfo['status']!, isLast: true),
+            // Image viewer with pinch to zoom
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+              ),
+            ),
+            // Close button
+            Positioned(
+              top: 40,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            // Certificate number indicator
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Certificate ${initialIndex + 1} of ${provider.certifications.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+Widget _buildLicenseSection(BuildContext context) {
+  String formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _showFullImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: InteractiveViewer(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Text('Image not available'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  return _buildSectionContainer(
+    title: 'License Information',
+    icon: Icons.badge_outlined,
+    content: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLicenseRow('License No', provider.licenseInfo.licenseNumber),
+          _buildLicenseRow('Issued By', provider.licenseInfo.issuingAuthority),
+          _buildLicenseRow('Valid From', formatDate(provider.licenseInfo.issueDate)),
+          _buildLicenseRow('Valid Until', formatDate(provider.licenseInfo.expiryDate)),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => _showFullImage(provider.licenseInfo.licenseImageUrl),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                provider.licenseInfo.licenseImageUrl,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Text('Image not available'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
 
   Widget _buildLicenseRow(String label, String value, {bool isLast = false}) {
     return Padding(
@@ -598,41 +785,124 @@ class ServiceProviderProfileScreen extends StatelessWidget {
       title: 'Availability',
       icon: Icons.access_time_outlined,
       content: Column(
-        children: provider.availability.asMap().entries.map((entry) {
-          final index = entry.key;
-          final time = entry.value;
-          return Container(
-            margin: EdgeInsets.only(bottom: index < provider.availability.length - 1 ? 10 : 0),
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.calendar_today_outlined,
-                    color: AppColors.primary,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  time,
-                  style: TextStyle(
-                    color: Colors.grey[800],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
+        children: [
+          _buildDaySchedule('Monday', provider.availability.monday),
+          _buildDivider(),
+          _buildDaySchedule('Tuesday', provider.availability.tuesday),
+          _buildDivider(),
+          _buildDaySchedule('Wednesday', provider.availability.wednesday),
+          _buildDivider(),
+          _buildDaySchedule('Thursday', provider.availability.thursday),
+          _buildDivider(),
+          _buildDaySchedule('Friday', provider.availability.friday),
+          _buildDivider(),
+          _buildDaySchedule('Saturday', provider.availability.saturday),
+          _buildDivider(),
+          _buildDaySchedule('Sunday', provider.availability.sunday),
+        ],
       ),
     );
+  }
+
+  Widget _buildDivider() {
+  return const Divider(
+    color: Colors.grey,
+    thickness: 0.5,
+    height: 16, 
+  );
+}
+
+  Widget _buildDaySchedule(String day, DaySchedule schedule) {
+    if (!schedule.isAvailable) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                day.substring(0, 3),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Not Available',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  day.substring(0, 3),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: schedule.timeWindows.map((window) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text(
+                        '${_formatTime(window.start)} - ${_formatTime(window.end)}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
   Widget _buildSocialLinks() {
@@ -831,14 +1101,14 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                           value: index == 0
                               ? 0.8
                               : index == 1
-                              ? 0.15
-                              : 0.05,
+                                  ? 0.15
+                                  : 0.05,
                           backgroundColor: Colors.grey[200],
                           color: index == 0
                               ? Colors.green
                               : index == 1
-                              ? Colors.amber
-                              : Colors.redAccent,
+                                  ? Colors.amber
+                                  : Colors.redAccent,
                           minHeight: 8,
                         ),
                       ),
@@ -881,7 +1151,7 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => ChatScreen(
-                    providerId: provider.chatId,
+                    providerId: provider.id,
                     providerName: provider.name,
                     providerImage: provider.imageUrl,
                   ),
@@ -896,7 +1166,9 @@ class ServiceProviderProfileScreen extends StatelessWidget {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AppointmentBookingScreen(),
+                  builder: (context) => AppointmentBookingScreen(
+                    provider: provider,
+                  ),
                 ),
               ),
               style: ElevatedButton.styleFrom(

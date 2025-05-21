@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '/constants/app_colors.dart';
 
-class ProviderAppointmentsScreen extends StatelessWidget {
+  class ProviderAppointmentsScreen extends StatelessWidget {
   const ProviderAppointmentsScreen({super.key});
 
   @override

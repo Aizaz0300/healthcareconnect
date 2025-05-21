@@ -49,4 +49,19 @@ class Validators {
     }
     return null;
   }
+
+  static String? url(String? value) {
+    if (value == null || value.isEmpty) {
+      return null; // URLs are optional
+    }
+    
+    final urlPattern = RegExp(
+      r'^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+[\/\?\=\&#%\.\-]*)*$',
+    );
+    
+    if (!urlPattern.hasMatch(value)) {
+      return 'Please enter a valid URL';
+    }
+    return null;
+  }
 }

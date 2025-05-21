@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:healthcare/providers/service_provider_provider.dart';
 import 'package:healthcare/providers/user_provider.dart';
+import 'package:healthcare/screens/provider/provider_dashboard_screen.dart';
 import 'package:provider/provider.dart';
 import '/screens/auth/user/user_login_screen.dart';
 import '/screens/auth/provider/provider_login_screen.dart';
 import '/screens/auth/admin/admin_login_screen.dart';
 import '/screens/user/home_screen.dart';
-import '/services/appwrite_auth_service.dart';
+import '../services/appwrite_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
@@ -20,8 +22,8 @@ class RoleSelectionScreen extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [
               Color(0xFFF8FBFF), Color(0xFFEDF5FF)
-              //,  // Very light blue-white
-              //,  // Light blue tint
+              // Very light blue-white
+              // Light blue tint
             ],
           ),
         ),
@@ -114,6 +116,9 @@ class RoleSelectionScreen extends StatelessWidget {
   }
 
   void _navigateToLogin(BuildContext context, String role) async {
+    // Store provider reference before async operations
+    final providerRef = context.read<ServiceProviderProvider>();
+
     if (role == 'user') {
       // Check for active session
       final appwriteService = AppwriteService();
@@ -123,7 +128,7 @@ class RoleSelectionScreen extends StatelessWidget {
 
       if (isLoggedIn) {
         // Get user data and update provider
-        final userData = await appwriteService.getCurrentUser(context);
+        final userData = await appwriteService.getCurrentUser();
         if (userData != null && context.mounted) {
           Provider.of<UserProvider>(context, listen: false)
               .setUserData(userData);
@@ -134,13 +139,24 @@ class RoleSelectionScreen extends StatelessWidget {
           return;
         }
       }
+    }
 
-      // If not logged in or failed to get user data, show login screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const UserLoginScreen()),
-      );
-      return;
+    if (role == 'provider') {
+      try {
+        final providerUserData = await providerRef.getCurrentUser();
+        
+        if (!context.mounted) return;
+        
+        if (providerUserData != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const ProviderDashboardScreen()),
+          );
+          return;
+        }
+      } catch (e) {
+        print('Error checking provider session: $e');
+      }
     }
 
     // Handle other roles

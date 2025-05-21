@@ -7,11 +7,8 @@ import 'package:healthcare/screens/user/pdf_viewer_page.dart';
 import 'package:healthcare/services/pdf_download.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:photo_view/photo_view.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
-import '../../services/appwrite_auth_service.dart';
+import '../../services/appwrite_service.dart';
 import '../../providers/user_provider.dart';
 import '/constants/app_colors.dart';
 
@@ -280,7 +277,7 @@ class _FolderScreenState extends State<FolderScreen> {
       final url =
           '${ApiConstants.endPoint}/storage/buckets/${file.bucketId}/files/${file.$id}/view?project=${ApiConstants.projectId}';
 
-      if (file.mimeType?.startsWith('image/') ?? false) {
+      if (file.mimeType.startsWith('image/')) {
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -355,7 +352,7 @@ class _FolderScreenState extends State<FolderScreen> {
                       ),
                       child: ListTile(
                         leading: Icon(
-                          _getFileIcon(file.mimeType ?? ''),
+                          _getFileIcon(file.mimeType),
                           color: AppColors.primary,
                         ),
                         title: Text(

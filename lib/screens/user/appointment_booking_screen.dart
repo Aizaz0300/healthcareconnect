@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '/constants/app_colors.dart';
+import '/models/service_provider.dart';
+import '../../models/appointment.dart';
+import '../../services/appointment_service.dart';
+import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
+import '../../providers/user_provider.dart';
 
 class AppointmentBookingScreen extends StatefulWidget {
-  const AppointmentBookingScreen({super.key});
+  final ServiceProvider provider;
+
+  const AppointmentBookingScreen({
+    super.key,
+    required this.provider,
+  });
 
   @override
   State<AppointmentBookingScreen> createState() => _AppointmentBookingScreenState();
@@ -17,34 +28,128 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   final _reasonController = TextEditingController();
   final List<TimeOfDay> _availableTimeSlots = [];
   final List<int> _availableDurations = [30, 45, 60, 90, 120];
+  final _appointmentService = AppointmentService();
 
   @override
   void initState() {
     super.initState();
-    _generateTimeSlots();
+    _generateTimeSlotsForDay(_selectedDay);
   }
 
-  void _generateTimeSlots() {
-    List<TimeOfDay> slots = [];
-    int hour = 9;
-    int minute = 0;
-    while (hour < 17 || (hour == 17 && minute == 0)) {
-      slots.add(TimeOfDay(hour: hour, minute: minute));
-      minute += 30;
-      if (minute >= 60) {
-        minute = 0;
-        hour += 1;
+  void _generateTimeSlotsForDay(DateTime date) {
+    // Get schedule for selected day
+    DaySchedule schedule;
+    switch (date.weekday) {
+      case DateTime.monday:
+        schedule = widget.provider.availability.monday;
+        break;
+      case DateTime.tuesday:
+        schedule = widget.provider.availability.tuesday;
+        break;
+      case DateTime.wednesday:
+        schedule = widget.provider.availability.wednesday;
+        break;
+      case DateTime.thursday:
+        schedule = widget.provider.availability.thursday;
+        break;
+      case DateTime.friday:
+        schedule = widget.provider.availability.friday;
+        break;
+      case DateTime.saturday:
+        schedule = widget.provider.availability.saturday;
+        break;
+      case DateTime.sunday:
+        schedule = widget.provider.availability.sunday;
+        break;
+      default:
+        schedule = widget.provider.availability.monday;
+    }
+
+    _availableTimeSlots.clear();
+
+    if (!schedule.isAvailable) {
+      setState(() {});
+      return;
+    }
+
+   
+    for (var window in schedule.timeWindows) {
+      TimeOfDay currentTime = window.start;
+      
+    
+      while (_isTimeBeforeOrEqual(currentTime, window.end)) {
+       
+        if (!_isPastTime(date, currentTime)) {
+          
+          TimeOfDay potentialEndTime = _addMinutesToTimeOfDay(currentTime, 30);
+          if (_isTimeBeforeOrEqual(potentialEndTime, window.end)) {
+            _availableTimeSlots.add(currentTime);
+          }
+        }
+        
+        
+        currentTime = _addMinutesToTimeOfDay(currentTime, 30);
       }
     }
-    setState(() => _availableTimeSlots.addAll(slots));
+    if (_selectedTime != null && !_availableTimeSlots.contains(_selectedTime)) {
+      _selectedTime = null;
+    }
+
+    setState(() {});
   }
 
-  String _formatTimeOfDay(TimeOfDay time) {
-    final hour = time.hour;
-    final minute = time.minute.toString().padLeft(2, '0');
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
-    return '$displayHour:$minute $period';
+  bool _isTimeBeforeOrEqual(TimeOfDay time1, TimeOfDay time2) {
+    final minutes1 = time1.hour * 60 + time1.minute;
+    final minutes2 = time2.hour * 60 + time2.minute;
+    return minutes1 <= minutes2;
+  }
+
+  TimeOfDay _addMinutesToTimeOfDay(TimeOfDay time, int minutes) {
+    final totalMinutes = time.hour * 60 + time.minute + minutes;
+    return TimeOfDay(
+      hour: totalMinutes ~/ 60,
+      minute: totalMinutes % 60,
+    );
+  }
+
+  bool _isPastTime(DateTime date, TimeOfDay time) {
+    if (!isSameDay(date, DateTime.now())) return false;
+    
+    final now = TimeOfDay.now();
+    final timeInMinutes = time.hour * 60 + time.minute;
+    final nowInMinutes = now.hour * 60 + now.minute;
+    
+    return timeInMinutes <= nowInMinutes;
+  }
+
+  bool _isDayAvailable(DateTime day) {
+    DaySchedule schedule;
+    switch (day.weekday) {
+      case DateTime.monday:
+        schedule = widget.provider.availability.monday;
+        break;
+      case DateTime.tuesday:
+        schedule = widget.provider.availability.tuesday;
+        break;
+      case DateTime.wednesday:
+        schedule = widget.provider.availability.wednesday;
+        break;
+      case DateTime.thursday:
+        schedule = widget.provider.availability.thursday;
+        break;
+      case DateTime.friday:
+        schedule = widget.provider.availability.friday;
+        break;
+      case DateTime.saturday:
+        schedule = widget.provider.availability.saturday;
+        break;
+      case DateTime.sunday:
+        schedule = widget.provider.availability.sunday;
+        break;
+      default:
+        return false;
+    }
+    return schedule.isAvailable;
   }
 
   TimeOfDay _calculateEndTime(TimeOfDay startTime, int duration) {
@@ -54,6 +159,13 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       hour: endMinutes ~/ 60,
       minute: endMinutes % 60,
     );
+  }
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
   @override
@@ -70,7 +182,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             _buildNotes(),
             const SizedBox(height: 10),
             Container(
-              margin: const EdgeInsets.only(bottom: 16), // Margin at the bottom of the button
+              margin: const EdgeInsets.only(bottom: 16),
               child: _buildBookButton(),
             ),
           ],
@@ -101,48 +213,70 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   }
 
   Widget _buildCalendar() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TableCalendar(
-            firstDay: DateTime.now(),
-            lastDay: DateTime.now().add(const Duration(days: 90)),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-                _selectedTime = null;
-                _selectedDuration = 30;
-              });
-            },
-            calendarStyle: CalendarStyle(
-              selectedDecoration: BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
+  return Padding(
+    padding: const EdgeInsets.all(16),
+    child: Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: Text(
+                'Select the available date',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              todayDecoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
+            ),
+            TableCalendar(
+              firstDay: DateTime.now(),
+              lastDay: DateTime.now().add(const Duration(days: 90)),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                if (_isDayAvailable(selectedDay)) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                    _selectedTime = null;
+                  });
+                  _generateTimeSlotsForDay(selectedDay);
+                }
+              },
+              enabledDayPredicate: (day) => _isDayAvailable(day),
+              calendarStyle: CalendarStyle(
+                selectedDecoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                todayDecoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                disabledTextStyle: TextStyle(
+                  color: Colors.grey[400],
+                  decoration: TextDecoration.lineThrough,
+                ),
+                weekendTextStyle: const TextStyle(color: Colors.redAccent),
+                todayTextStyle: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              weekendTextStyle: const TextStyle(color: Colors.redAccent),
-              todayTextStyle: const TextStyle(fontWeight: FontWeight.bold),
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
             ),
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
 
   Widget _buildTimeSelection() {
@@ -216,7 +350,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
-
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -240,7 +373,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             decoration: const InputDecoration(
               hintText: 'Describe your condition or needs',
               border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.only(top: 20, left: 10, right: 10, bottom: 10), // Add padding to leave space for the icon
+              contentPadding: EdgeInsets.only(top: 20, left: 10, right: 10, bottom: 10),
             ),
             maxLines: 5,
           ),
@@ -253,8 +386,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       ),
     );
   }
-
-
 
   Widget _buildBookButton() {
     return Padding(
@@ -271,7 +402,6 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
-
   void _validateAndBook() {
     if (_selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -286,16 +416,8 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         time: _selectedTime!,
         duration: _selectedDuration,
         notes: _reasonController.text,
-        onConfirm: () {
-          Navigator.pop(context);
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Appointment booked successfully!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        },
+        provider: widget.provider, // Add provider
+        appointmentService: _appointmentService, // Add service
       ),
     );
   }
@@ -306,14 +428,16 @@ class _BookingSummary extends StatelessWidget {
   final TimeOfDay time;
   final int duration;
   final String notes;
-  final VoidCallback onConfirm;
+  final ServiceProvider provider;
+  final AppointmentService appointmentService;
 
   const _BookingSummary({
     required this.date,
     required this.time,
     required this.duration,
     required this.notes,
-    required this.onConfirm,
+    required this.provider,
+    required this.appointmentService,
   });
 
   static String formatTimeOfDay(TimeOfDay time) {
@@ -331,6 +455,58 @@ class _BookingSummary extends StatelessWidget {
       hour: endMinutes ~/ 60,
       minute: endMinutes % 60,
     );
+  }
+
+  Future<void> _handleConfirm(BuildContext context) async {
+    try {
+      final endTime = _calculateEndTime();
+      final totalCost = duration * 1.0;
+      
+      // Get user data from UserProvider
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final userId = userProvider.userId;
+      final username = '${userProvider.firstName} ${userProvider.lastName}';
+
+      // Validate user data
+      if (userId == null) {
+        throw Exception('User not logged in');
+      }
+
+      final appointment = Appointment(
+        id: const Uuid().v4(),
+        userId: userId,
+        providerId: provider.id,
+        username: username,
+        providerName: provider.name,
+        date: date,
+        startTime: formatTimeOfDay(time),
+        endTime: formatTimeOfDay(endTime),
+        duration: duration,
+        notes: notes,
+        status: 'pending',
+        cost: totalCost,
+      );
+
+      await appointmentService.createAppointment(appointment);
+      
+      Navigator.pop(context); // Close bottom sheet
+      Navigator.pop(context); // Close booking screen
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Appointment booked successfully!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to book appointment: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -355,9 +531,19 @@ class _BookingSummary extends StatelessWidget {
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel'))),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel')
+                )
+              ),
               const SizedBox(width: 16),
-              Expanded(child: ElevatedButton(onPressed: onConfirm, child: const Text('Confirm'))),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => _handleConfirm(context),
+                  child: const Text('Confirm')
+                )
+              ),
             ],
           ),
         ],
@@ -377,6 +563,4 @@ class _BookingSummary extends StatelessWidget {
       ),
     );
   }
-
-
 }

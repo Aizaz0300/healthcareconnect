@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/notification_model.dart';
 import '../../providers/user_provider.dart';
-import '../../services/appwrite_auth_service.dart';
+import '../../services/appwrite_service.dart';
 import '/constants/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/constants/app_colors.dart';
 import '/models/service_provider.dart';
 import 'service_provider_profile_screen.dart';
+import '/services/appwrite_service.dart';
 
 class ServiceProviderListingScreen extends StatefulWidget {
   final String categoryName;
@@ -18,12 +19,61 @@ class ServiceProviderListingScreen extends StatefulWidget {
 class _ServiceProviderListingScreenState extends State<ServiceProviderListingScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
+  final _appwriteService = AppwriteService();
   bool _showElevation = false;
+  bool _isLoading = true;
+  List<ServiceProvider> _providers = [];
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _fetchServiceProviders();
+  }
+
+  Future<void> _fetchServiceProviders() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final providers = await _appwriteService.getServiceProviders(widget.categoryName);
+
+      setState(() {
+        _providers = providers;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _filterProviders(String query) async {
+    if (query.isEmpty) {
+      await _fetchServiceProviders();
+    } else {
+      try {
+        setState(() => _isLoading = true);
+        final providers = await _appwriteService.searchServiceProviders(
+          widget.categoryName,
+          query,
+        );
+        setState(() {
+          _providers = providers;
+          _isLoading = false;
+        });
+      } catch (e) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _onScroll() {
@@ -85,13 +135,8 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
               ),
             ];
           },
-          body: _buildProvidersList(),
+          body: _buildContent(),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.filter_list),
       ),
     );
   }
@@ -147,6 +192,14 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
       color: Colors.white,
       child: TextField(
         controller: _searchController,
+        onChanged: (value) {
+          // Add debounce to prevent too many API calls
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (value == _searchController.text) {
+              _filterProviders(value);
+            }
+          });
+        },
         decoration: InputDecoration(
           hintText: 'Search providers...',
           hintStyle: TextStyle(color: Colors.grey[400]),
@@ -171,26 +224,44 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
     );
   }
 
-  Widget _buildProvidersList() {
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _error!,
+              style: TextStyle(color: Colors.red[700]),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchServiceProviders,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_providers.isEmpty) {
+      return const Center(
+        child: Text('No service providers found'),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: 10, // Replace with actual data
+      itemCount: _providers.length,
       itemBuilder: (context, index) {
         return _ProviderCard(
-          provider: ServiceProvider(
-            id: 'id$index',
-            name: 'Dr. John Doe',
-            imageUrl: 'placeholder_url',
-            specialization: widget.categoryName,
-            rating: 4.5,
-            reviewCount: 128,
-            experience: '8 years',
-            consultationFee: 100.0,
-            about: 'Experienced healthcare provider',
-            services: ['Service 1', 'Service 2'],
-            availability: ['Mon-Fri', '9:00 AM - 5:00 PM'],
-            location: 'New York, NY',
-          ),
+          provider: _providers[index],
         );
       },
     );
@@ -275,7 +346,7 @@ class _ProviderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        provider.specialization,
+                        provider.services[0],
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -306,19 +377,7 @@ class _ProviderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.favorite_border,
-                    color: Colors.grey[400],
-                    size: 16,
-                  ),
-                ),
+
               ],
             ),
           ),
@@ -346,27 +405,19 @@ class _ProviderCard extends StatelessWidget {
                         children: [
                           _buildInfoChip(
                             Icons.work,
-                            provider.experience,
+                            '${provider.experience} years',
                             Colors.blue[700]!,
                             Colors.blue[100]!,
                           ),
                           _buildInfoChip(
                             Icons.location_on,
-                            provider.location,
+                            provider.address,
                             Colors.red[700]!,
                             Colors.red[100]!,
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        '\$${provider.consultationFee.toStringAsFixed(0)}/session',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
                     ],
                   ),
                 ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '/constants/app_colors.dart';
 import '/screens/auth/user/user_signup_screen.dart';
 import '/screens/user/home_screen.dart';
-import '../../../services/appwrite_auth_service.dart';
+import '../../../services/appwrite_service.dart';
 import '../../../utils/auth_exceptions.dart';
 
 class UserLoginScreen extends StatefulWidget {

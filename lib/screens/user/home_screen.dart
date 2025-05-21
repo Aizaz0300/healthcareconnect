@@ -16,8 +16,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get user data from provider
-    final userData = context.watch<UserProvider>().userData;
+
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -98,7 +97,7 @@ class HomeScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => ServiceProviderListingScreen(
-                      categoryName: 'Nursing Care',
+                      categoryName: 'Nurse',
                     ),
                   ),
                 );
@@ -396,18 +395,21 @@ class HomeScreen extends StatelessWidget {
       {
         'icon': Icons.health_and_safety,
         'name': 'Nursing Care',
+        'service': 'Nurse',
         'color': Colors.blue[600]!,
         'bgColor': Colors.blue[100]!,
       },
       {
         'icon': Icons.wheelchair_pickup,
         'name': 'Physiotherapy',
+        'service': 'Physiotherapist',
         'color': Colors.green[600]!,
         'bgColor': Colors.green[100]!,
       },
       {
-        'icon': Icons.medical_services,
-        'name': 'Medical Tests',
+        'icon': Icons.elderly,
+        'name': 'Elderly Care',
+        'service': 'Elderly Care',
         'color': Colors.purple[600]!,
         'bgColor': Colors.purple[100]!,
       },
@@ -417,7 +419,6 @@ class HomeScreen extends StatelessWidget {
         'color': Colors.red[600]!,
         'bgColor': Colors.red[100]!,
       }
-
     ];
 
     return Column(
@@ -452,14 +453,16 @@ class HomeScreen extends StatelessWidget {
                 name: service['name'] as String,
                 color: service['color'] as Color,
                 bgColor: service['bgColor'] as Color,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ServiceProviderListingScreen(
-                      categoryName: service['name'] as String,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ServiceProviderListingScreen(
+                        categoryName: service['service'] as String,
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),
@@ -611,7 +614,7 @@ class _ServiceCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 120,
+        width: 125,
         margin: const EdgeInsets.only(right: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

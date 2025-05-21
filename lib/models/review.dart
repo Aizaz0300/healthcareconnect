@@ -14,4 +14,28 @@ class Review {
     required this.comment,
     required this.date,
   });
+  
+ 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userName': userName,
+      'userImage': userImage,
+      'rating': rating,
+      'comment': comment,
+      'date': date.toIso8601String(), 
+    };
+  }
+  
+  // Creates a Review instance from a JSON Map.
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json['id'] as String,
+      userName: json['userName'] as String,
+      userImage: json['userImage'] as String,
+      rating: (json['rating'] as num).toDouble(), 
+      comment: json['comment'] as String,
+      date: DateTime.parse(json['date'] as String),
+    );
+  }
 }

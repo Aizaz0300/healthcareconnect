@@ -2,7 +2,7 @@ import 'package:appwrite/models.dart';
 import 'package:flutter/material.dart';
 import 'package:healthcare/providers/user_provider.dart';
 import 'package:healthcare/screens/user/folder_screen.dart';
-import 'package:healthcare/services/appwrite_auth_service.dart';
+import 'package:healthcare/services/appwrite_service.dart';
 import 'package:provider/provider.dart';
 import '/constants/app_colors.dart';
 

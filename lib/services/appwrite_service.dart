@@ -1,6 +1,7 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
 import 'package:healthcare/models/notification_model.dart';
+import 'package:healthcare/models/service_provider.dart';
 import '../constants/api_constants.dart';
 import '../models/user_model.dart';
 import '../utils/auth_exceptions.dart';
@@ -18,9 +19,10 @@ class AppwriteService {
 
   static const String _usersCollection = '67e63ee90033460e4b77';
   static const String _database = '67e6393a0009ccfe982e';
-  static const String _profileImagesBucket = '67e7e8cd002cb16f483a'; 
+  static const String _generalStorageBucket = '67e7e8cd002cb16f483a'; 
   static const String _documentBucketId = '67e8a81c001a021be2be'; 
-
+  static const String _providerCollection = '67ef8112001cf8d36011'; 
+  
   AppwriteService() {
     _init();
   }
@@ -95,7 +97,7 @@ class AppwriteService {
     }
   }
 
-  Future<Map<String, dynamic>?> getCurrentUser(BuildContext context) async {
+  Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
       final currentUser = await account.get();
       final userData = await databases.getDocument(
@@ -173,13 +175,13 @@ class AppwriteService {
     try {
       // Upload file
       final file = await storage.createFile(
-        bucketId: _profileImagesBucket,
+        bucketId: _generalStorageBucket,
         fileId: ID.unique(),
         file: InputFile.fromPath(path: filePath),
       );
 
       // Construct image URL
-      final imageUrl = '${ApiConstants.endPoint}/storage/buckets/$_profileImagesBucket/files/${file.$id}/view?project=${ApiConstants.projectId}';
+      final imageUrl = '${ApiConstants.endPoint}/storage/buckets/$_generalStorageBucket/files/${file.$id}/view?project=${ApiConstants.projectId}';
 
       // Update user document with new image URL
       await databases.updateDocument(
@@ -314,6 +316,48 @@ class AppwriteService {
   Future<void> cleanOldNotifications(String userId) async {
     return _notificationService.cleanOldNotifications(userId);
   }
+
+  Future<List<ServiceProvider>> getServiceProviders(String category) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _providerCollection,
+        queries: [
+          Query.equal('services', [category]),  // Assuming services is an array
+          Query.equal('status', 'approved'),    // Only approved providers
+        ],
+      );
+
+      return response.documents.map((doc) {
+        return ServiceProvider.fromJson(doc.data);
+      }).toList();
+    } catch (e) {
+      print('Error fetching service providers: $e');
+      throw Exception('Failed to load service providers');
+    }
+  }
+
+  Future<List<ServiceProvider>> searchServiceProviders(String category, String searchQuery) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _providerCollection,
+        queries: [
+          Query.equal('services', [category]),
+          Query.equal('status', 'approved'),
+          Query.search('name', searchQuery),  // Search by provider name
+        ],
+      );
+
+      return response.documents.map((doc) {
+        return ServiceProvider.fromJson(doc.data);
+      }).toList();
+    } catch (e) {
+      print('Error searching service providers: $e');
+      throw Exception('Failed to search service providers');
+    }
+  }
+
 }
 
 

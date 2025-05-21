@@ -4,7 +4,7 @@ import '/constants/app_colors.dart';
 import '/utils/validators.dart';
 import 'user_login_screen.dart';
 import '/screens/common/terms_and_conditions_screen.dart';
-import '../../../services/appwrite_auth_service.dart';
+import '../../../services/appwrite_service.dart';
 import '../../../models/user_model.dart';
 import '../../../utils/auth_exceptions.dart';
 

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '/constants/app_colors.dart';
 import '/utils/validators.dart';
 import 'provider_signup_screen.dart';
 import '/screens/provider/provider_dashboard_screen.dart';
+import '../../../providers/service_provider_provider.dart';
 
 class ProviderLoginScreen extends StatefulWidget {
   const ProviderLoginScreen({super.key});
@@ -128,17 +130,17 @@ class _ProviderLoginScreenState extends State<ProviderLoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement actual login logic
-      await Future.delayed(const Duration(seconds: 2));
+      await context.read<ServiceProviderProvider>().login(
+        _emailController.text,
+        _passwordController.text,
+      );
 
-      if (mounted) {
+      if (mounted && context.read<ServiceProviderProvider>().isLoggedIn) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -148,12 +150,27 @@ class _ProviderLoginScreenState extends State<ProviderLoginScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Login failed';
+        
+        if (e.toString().contains('not_approved')) {
+          errorMessage = 'Your account is pending approval.';
+        } else if (e.toString().contains('Invalid credentials')) {
+          errorMessage = 'Invalid email or password.';
+        } else if (e.toString().contains('network')) {
+          errorMessage = 'Network error. Please check your connection.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

@@ -62,7 +62,7 @@ class AppwriteProviderService {
     };
 
     // Create provider document in Appwrite database.
-    final document = await databases.createDocument(
+    await databases.createDocument(
       databaseId: _database,
       collectionId: _providerCollection,
       documentId: response.$id,

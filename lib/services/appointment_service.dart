@@ -33,4 +33,42 @@ class AppointmentService {
       rethrow;
     }
   }
+
+  Future<List<Appointment>> getActiveAppointments(String userId) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        queries: [
+          Query.equal('userId', userId),
+          Query.notEqual('status', 'cancelled'),
+          Query.notEqual('status', 'completed'),
+        ],
+      );
+
+      return response.documents.map((doc) {
+        return Appointment.fromJson(doc.data);
+      }).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<Appointment>> getHistoryAppointments(String userId) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        queries: [
+          Query.equal('userId', userId),
+          Query.equal('status', 'cancelled'),
+          Query.equal('status', 'completed'),
+        ],
+      );
+
+      return response.documents.map((doc) => Appointment.fromJson(doc.data)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

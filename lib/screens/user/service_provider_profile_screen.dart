@@ -247,30 +247,6 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVerticalDivider() {
-    return Container(
-      height: 24,
-      width: 1,
-      color: Colors.grey[300],
-    );
-  }
-
-  Widget _buildInfoBarItem(IconData icon, String text, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(height: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[800],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildSectionContainer({
     required String title,

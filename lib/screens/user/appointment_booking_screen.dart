@@ -26,6 +26,8 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   TimeOfDay? _selectedTime;
   int _selectedDuration = 30;
   final _reasonController = TextEditingController();
+  final _addressController = TextEditingController(); // Add this line
+  bool _addressError = false; // Add this line
   final List<TimeOfDay> _availableTimeSlots = [];
   final List<int> _availableDurations = [30, 45, 60, 90, 120];
   final _appointmentService = AppointmentService();
@@ -178,8 +180,9 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             _buildCalendar(),
             _buildTimeSelection(),
             _buildDurationSelection(),
-            if (_selectedTime != null) _buildBookingDetails(),
+            _buildAddress(),
             _buildNotes(),
+            if (_selectedTime != null) _buildBookingDetails(),
             const SizedBox(height: 10),
             Container(
               margin: const EdgeInsets.only(bottom: 16),
@@ -363,6 +366,38 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
     );
   }
 
+  Widget _buildAddress() {
+    return _modernCard(
+      title: 'Address for the Appointment *',
+      child: Stack(
+        children: [
+          TextField(
+            controller: _addressController,
+            decoration: InputDecoration(
+              hintText: 'House No. 123, Street No. 45, City',
+              border: const OutlineInputBorder(),
+              contentPadding: const EdgeInsets.only(top: 20, left: 10, right: 10, bottom: 10),
+              errorText: _addressError ? 'Address is required' : null,
+            ),
+            maxLines: 3,
+            onChanged: (value) {
+              if (_addressError) {
+                setState(() {
+                  _addressError = false;
+                });
+              }
+            },
+          ),
+          const Positioned(
+            top: 4,
+            right: 4,
+            child: Icon(Icons.location_on_outlined),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNotes() {
     return _modernCard(
       title: 'Notes for the Provider',
@@ -409,6 +444,15 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
       return;
     }
 
+    if (_addressController.text.trim().isEmpty) {
+      setState(() {
+        _addressError = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your address')));
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       builder: (context) => _BookingSummary(
@@ -416,8 +460,9 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         time: _selectedTime!,
         duration: _selectedDuration,
         notes: _reasonController.text,
-        provider: widget.provider, // Add provider
-        appointmentService: _appointmentService, // Add service
+        destinationAddress: _addressController.text, // Update this line
+        provider: widget.provider,
+        appointmentService: _appointmentService,
       ),
     );
   }
@@ -428,6 +473,7 @@ class _BookingSummary extends StatelessWidget {
   final TimeOfDay time;
   final int duration;
   final String notes;
+  final String destinationAddress; 
   final ServiceProvider provider;
   final AppointmentService appointmentService;
 
@@ -436,6 +482,7 @@ class _BookingSummary extends StatelessWidget {
     required this.time,
     required this.duration,
     required this.notes,
+    required this.destinationAddress,
     required this.provider,
     required this.appointmentService,
   });
@@ -460,11 +507,12 @@ class _BookingSummary extends StatelessWidget {
   Future<void> _handleConfirm(BuildContext context) async {
     try {
       final endTime = _calculateEndTime();
-      final totalCost = duration * 1.0;
+      final totalCost = duration * 1;
       
       // Get user data from UserProvider
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final userId = userProvider.userId;
+      final userImageURL = userProvider.profileImage;
       final username = '${userProvider.firstName} ${userProvider.lastName}';
 
       // Validate user data
@@ -477,14 +525,18 @@ class _BookingSummary extends StatelessWidget {
         userId: userId,
         providerId: provider.id,
         username: username,
+        userImageURL: userImageURL ?? '',
         providerName: provider.name,
+        providerImageURL: provider.imageUrl,
+        service: provider.services[0],
         date: date,
         startTime: formatTimeOfDay(time),
         endTime: formatTimeOfDay(endTime),
         duration: duration,
         notes: notes,
-        status: 'pending',
+        status: "pending",
         cost: totalCost,
+        destinationAddress: destinationAddress,
       );
 
       await appointmentService.createAppointment(appointment);
@@ -526,7 +578,8 @@ class _BookingSummary extends StatelessWidget {
           _buildInfoRow('Start Time', formatTimeOfDay(time)),
           _buildInfoRow('End Time', formatTimeOfDay(endTime)),
           _buildInfoRow('Duration', '$duration minutes'),
-          _buildInfoRow('Cost', '\$${totalCost.toStringAsFixed(2)}'),
+          _buildInfoRow('Cost', '\PKR${totalCost.toStringAsFixed(2)}'),
+          _buildInfoRow('Address', destinationAddress), // Add this line
           if (notes.isNotEmpty) _buildInfoRow('Notes', notes),
           const SizedBox(height: 24),
           Row(

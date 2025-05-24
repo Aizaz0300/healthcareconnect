@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '/constants/app_colors.dart';
+
 
 class PasswordStrengthIndicator extends StatelessWidget {
   final String password;

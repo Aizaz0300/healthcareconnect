@@ -50,7 +50,6 @@ class ServiceProvider {
   });
 
   ServiceProvider copyWith({
-    String? id,
     String? name,
     String? email,
     String? gender,
@@ -97,7 +96,6 @@ class ServiceProvider {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'name': name,
       'email': email,
       'gender': gender,

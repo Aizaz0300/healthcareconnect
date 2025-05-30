@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:healthcare/screens/user/home_screen.dart';
 import '/constants/app_colors.dart';
 import '/utils/validators.dart';
 import 'user_login_screen.dart';
@@ -35,30 +34,123 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Account'),
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPersonalInfo(),
-              const SizedBox(height: 24),
-              _buildContactInfo(),
-              const SizedBox(height: 24),
-              _buildAuthenticationInfo(),
-              const SizedBox(height: 24),
-              _buildTermsAndConditions(),
-              const SizedBox(height: 24),
-              _buildSignUpButton(),
-              const SizedBox(height: 16),
-              _buildLoginOption(),
-            ],
+      backgroundColor: Colors.grey[50],
+      body: Stack(
+        children: [
+          // Gradient background
+          Container(
+            height: MediaQuery.of(context).size.height * 0.3,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.primary, AppColors.gradientEnd],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(30),
+              ),
+            ),
           ),
-        ),
+
+          // Decorative circles
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Join us to access healthcare services',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 40),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle('Personal Information'),
+                          const SizedBox(height: 16),
+                          _buildPersonalInfo(),
+                          const SizedBox(height: 24),
+                          _buildSectionTitle('Contact Information'),
+                          const SizedBox(height: 16),
+                          _buildContactInfo(),
+                          const SizedBox(height: 24),
+                          _buildSectionTitle('Authentication'),
+                          const SizedBox(height: 16),
+                          _buildAuthenticationInfo(),
+                          const SizedBox(height: 24),
+                          _buildTermsAndConditions(),
+                          const SizedBox(height: 24),
+                          _buildSignUpButton(),
+                          const SizedBox(height: 16),
+                          _buildLoginOption(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.primary,
+      ),
+    );
+  }
+
+  InputDecoration _getInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: AppColors.primary),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
     );
   }
@@ -67,22 +159,12 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Personal Information',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: TextFormField(
                 controller: _firstNameController,
-                decoration: const InputDecoration(
-                  labelText: 'First Name',
-                ),
+                decoration: _getInputDecoration('First Name', Icons.person),
                 validator: Validators.required,
               ),
             ),
@@ -90,9 +172,7 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
             Expanded(
               child: TextFormField(
                 controller: _lastNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Last Name',
-                ),
+                decoration: _getInputDecoration('Last Name', Icons.person),
                 validator: Validators.required,
               ),
             ),
@@ -110,40 +190,23 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Contact Information',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            prefixIcon: Icon(Icons.email),
-          ),
+          decoration: _getInputDecoration('Email', Icons.email),
           validator: Validators.email,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _phoneController,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: 'Phone Number',
-            prefixIcon: Icon(Icons.phone),
-          ),
+          decoration: _getInputDecoration('Phone Number', Icons.phone),
           validator: Validators.phone,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _addressController,
-          decoration: const InputDecoration(
-            labelText: 'Address',
-            prefixIcon: Icon(Icons.location_on),
-          ),
+          decoration: _getInputDecoration('Address', Icons.location_on),
           maxLines: 2,
           validator: Validators.required,
         ),
@@ -155,21 +218,10 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Authentication',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
         TextFormField(
           controller: _passwordController,
           obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Password',
-            prefixIcon: Icon(Icons.lock),
-          ),
+          decoration: _getInputDecoration('Password', Icons.lock),
           validator: Validators.password,
         ),
       ],
@@ -180,10 +232,7 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
     return InkWell(
       onTap: _selectDate,
       child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Date of Birth',
-          prefixIcon: Icon(Icons.calendar_today),
-        ),
+        decoration: _getInputDecoration('Date of Birth', Icons.calendar_today),
         child: Text(
           _dateOfBirth != null
               ? '${_dateOfBirth!.day}/${_dateOfBirth!.month}/${_dateOfBirth!.year}'
@@ -196,10 +245,7 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
   Widget _buildGenderSelector() {
     return DropdownButtonFormField<String>(
       value: _selectedGender,
-      decoration: const InputDecoration(
-        labelText: 'Gender',
-        prefixIcon: Icon(Icons.person_outline),
-      ),
+      decoration: _getInputDecoration('Gender', Icons.person_outline),
       items: _genders.map((gender) {
         return DropdownMenuItem(
           value: gender,
@@ -245,11 +291,20 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
   Widget _buildSignUpButton() {
     return SizedBox(
       width: double.infinity,
+      height: 50,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleSignUp,
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
-            : const Text('Create Account'),
+            : const Text(
+                'Create Account',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
       ),
     );
   }

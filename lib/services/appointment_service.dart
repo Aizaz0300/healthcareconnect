@@ -43,6 +43,8 @@ class AppointmentService {
           Query.equal('userId', userId),
           Query.notEqual('status', 'cancelled'),
           Query.notEqual('status', 'completed'),
+          Query.notEqual('status', 'rejected'),
+
         ],
       );
 
@@ -61,8 +63,7 @@ class AppointmentService {
         collectionId: _appointmentCollectionId,
         queries: [
           Query.equal('userId', userId),
-          Query.equal('status', 'cancelled'),
-          Query.equal('status', 'completed'),
+          Query.equal('status', ['cancelled', 'completed', 'rejected']),
         ],
       );
 

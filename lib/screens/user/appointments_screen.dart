@@ -4,6 +4,10 @@ import 'package:healthcare/models/appointment.dart';
 import 'package:healthcare/services/appointment_service.dart';
 import 'package:healthcare/providers/user_provider.dart';
 import '/constants/app_colors.dart';
+import '/helpers/appointment_status_helper.dart';
+import '/models/appointment_status.dart';
+import '/services/chat_service.dart';
+import 'chat_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -55,11 +59,88 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     }
   }
 
+  void _showInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Appointment Status Guide',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...AppointmentStatus.values.map((status) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          AppointmentStatusHelper.getStatusIcon(status),
+                          color: AppointmentStatusHelper.getStatusColor(status),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppointmentStatusHelper.getStatusText(status),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                AppointmentStatusHelper.getDescription(status),
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Appointments'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: _showInfo,
+          ),
+        ],
       ),
       backgroundColor: Colors.grey[50],
       body: _error != null
@@ -298,54 +379,122 @@ class _AppointmentCard extends StatelessWidget {
   }
 
   Widget _buildStatusChip(String status) {
-  Color color;
-  String text;
+    final appointmentStatus = AppointmentStatusHelper.fromString(status);
+    final color = AppointmentStatusHelper.getStatusColor(appointmentStatus);
+    final text = AppointmentStatusHelper.getStatusText(appointmentStatus);
 
-  switch (status) {
-    case "confirmed":
-      color = Colors.green;
-      text = 'Confirmed';
-      break;
-    case "completed":
-      color = Colors.blue;
-      text = 'Completed';
-      break;
-    case "cancelled":
-      color = Colors.red;
-      text = 'Cancelled';
-      break;
-    case "pending":
-      color = Colors.orange;
-      text = 'Pending';
-      break;
-    default:
-      color = Colors.grey;
-      text = 'Unknown';
-  }
-
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: color.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: color,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
+    return Tooltip(
+      message: AppointmentStatusHelper.getDescription(appointmentStatus),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              AppointmentStatusHelper.getStatusIcon(appointmentStatus),
+              size: 16,
+              color: color,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }
 
 class _AppointmentDetailsModal extends StatelessWidget {
   final Appointment appointment;
 
   const _AppointmentDetailsModal({required this.appointment});
+
+  bool get _canBeCancelled {
+    final status = AppointmentStatusHelper.fromString(appointment.status);
+    return status == AppointmentStatus.active ||
+        status == AppointmentStatus.confirmed ||
+        status == AppointmentStatus.pending;
+  }
+
+  void _showCancelConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Appointment'),
+        content: const Text(
+          'Are you sure you want to cancel this appointment? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('NO'),
+          ),
+          TextButton(
+            onPressed: () {
+              // TODO: Implement appointment cancellation
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Close modal
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('YES, CANCEL'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startChat(BuildContext context) async {
+    try {
+      final chatService = ChatService();
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final username = '${userProvider.firstName} ${userProvider.lastName}';
+      
+      if (userProvider.userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to chat')),
+        );
+        return;
+      }
+      
+      final chat = await chatService.getOrCreateChat(
+        userId: userProvider.userId!,
+        providerId: appointment.providerId,
+        providerName: appointment.providerName,
+        userName: username, 
+      );
+
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(
+              chatId: chat.$id,
+              providerName: appointment.providerName,
+              currentUserId: userProvider.userId!,
+              providerId:  appointment.providerId,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to start chat: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -358,38 +507,89 @@ class _AppointmentDetailsModal extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: ListView(
-          controller: controller,
-          padding: const EdgeInsets.all(20),
+        child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Appointment Details',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+            Expanded(
+              child: ListView(
+                controller: controller,
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Appointment Details',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  _buildProviderInfo(),
+                  const SizedBox(height: 20),
+                  _buildAppointmentInfo(),
+                  const SizedBox(height: 20),
+                  _buildNotes(),
+                  const SizedBox(height: 20),
+                  _buildLocation(),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-            _buildProviderInfo(),
-            const SizedBox(height: 20),
-            _buildAppointmentInfo(),
-            const SizedBox(height: 20),
-            _buildNotes(),
-            const SizedBox(height: 20),
-            _buildLocation(),
-            const SizedBox(height: 20),
-            //_buildMap(),
+            _buildActions(context),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (_canBeCancelled)
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showCancelConfirmation(context),
+                icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                label: const Text('Cancel Appointment'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  backgroundColor: Colors.red.withOpacity(0.1),
+                ),
+              ),
+            ),
+          if (_canBeCancelled)
+            const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => _startChat(context),
+              icon: const Icon(Icons.chat_outlined),
+              label: const Text('Chat with Provider'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -449,10 +649,14 @@ class _AppointmentDetailsModal extends StatelessWidget {
             const SizedBox(height: 6),
             _buildInfoRow('Duration', '${appointment.duration} minutes'),
             const SizedBox(height: 6),
-            _buildInfoRow('Cost', '\$${appointment.cost.toStringAsFixed(2)}'),
+            _buildInfoRow('Cost', 'PKR ${appointment.cost.toStringAsFixed(2)}'),
             const SizedBox(height: 6),
             _buildInfoRow(
-                'Status', appointment.status.toString().split('.').last),
+              'Status', 
+              AppointmentStatusHelper.getStatusText(
+                AppointmentStatusHelper.fromString(appointment.status)
+              ),
+            ),
           ],
         ),
       ),
@@ -553,11 +757,4 @@ class _AppointmentDetailsModal extends StatelessWidget {
   //     ),
   //   );
   // }
-}
-
-enum AppointmentStatus {
-  pending,
-  confirmed,
-  completed,
-  cancelled,
 }

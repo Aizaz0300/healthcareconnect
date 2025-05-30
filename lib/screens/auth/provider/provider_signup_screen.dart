@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:healthcare/screens/auth/provider/provider_signup_failure_screen.dart';
 import '/models/service_provider.dart';
 import '/services/appwrite_provider_service.dart';
-import '/providers/service_provider_provider.dart';
 import '/constants/app_colors.dart';
 import '/utils/validators.dart';
 import '/widgets/password_strength_indicator.dart';
@@ -13,10 +12,8 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '/widgets/profile_image_picker.dart';
 import '/widgets/custom_input_field.dart';
-import '/widgets/document_uploader.dart';
 import '/widgets/section_title.dart';
 import '/widgets/date_selector.dart';
-import '/utils/day_icon_helper.dart';
 import '/utils/availability_helper.dart';
 import '/widgets/day_schedule_card.dart';
 
@@ -395,76 +392,6 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
     );
   }
 
-  Widget _buildProfileImagePicker() {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: _pickProfileImage,
-          child: Stack(
-            children: [
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[100],
-                  border: Border.all(
-                    color: AppColors.primary.withOpacity(0.2),
-                    width: 3,
-                  ),
-                  image: _profileImage != null
-                      ? DecorationImage(
-                          image: FileImage(_profileImage!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.1),
-                      spreadRadius: 2,
-                      blurRadius: 20,
-                    ),
-                  ],
-                ),
-                child: _profileImage == null
-                    ? Icon(
-                        Icons.add_a_photo,
-                        size: 50,
-                        color: AppColors.primary.withOpacity(0.5),
-                      )
-                    : null,
-              ),
-              if (_profileImage != null)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.edit,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Profile Picture',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildCnicUpload() {
   return Card(
@@ -879,73 +806,6 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
     );
   }
 
-  Widget _buildDateSelector(
-    String label,
-    DateTime? selectedDate,
-    Function(DateTime) onSelect,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey.shade700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () async {
-            final DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: selectedDate ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-              builder: (context, child) {
-                return Theme(
-                  data: Theme.of(context).copyWith(
-                    colorScheme: ColorScheme.light(
-                      primary: AppColors.primary,
-                    ),
-                  ),
-                  child: child!,
-                );
-              },
-            );
-            if (picked != null) onSelect(picked);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  selectedDate != null
-                      ? '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'
-                      : '$label',
-                  style: TextStyle(
-                    color: selectedDate != null
-                        ? Colors.black87
-                        : Colors.grey.shade600,
-                  ),
-                ),
-                Icon(
-                  Icons.calendar_today,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildDocumentUploader() {
     return Column(
@@ -1505,19 +1365,6 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
     }
   }
 
-  void _removeGalleryImage(int index) {
-    setState(() {
-      _galleryImages.removeAt(index);
-      _galleryImagepath.removeAt(index);
-    });
-  }
-
-  void _removeCertification(int index) {
-    setState(() {
-      _certifications.removeAt(index);
-      _certificationPaths.removeAt(index);
-    });
-  }
 
   void _addSocialLink() {
     showDialog(
@@ -1665,44 +1512,59 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
   setState(() => _isLoading = true);
 
   try {
-    // 1. Upload images
-    final String profileImageUrl = await _appwriteProviderService.uploadFileforURL(
-      _profileImagePath!,
-      'profile_images',
-    );
+   
+    String? profileImageUrl;
+    if (_profileImagePath != null) {
+      profileImageUrl = await _appwriteProviderService.uploadFileforURL(
+        _profileImagePath!,
+        'profile_images',
+      );
+    }
 
-    final List<String> cnicUrls = await Future.wait([
-      _appwriteProviderService.uploadFileforURL(_cnicFrontPath!, 'cnic_images'),
-      _appwriteProviderService.uploadFileforURL(_cnicBackPath!, 'cnic_images'),
-    ]);
+    List<String> cnicUrls = [];
+    if (_cnicFrontPath != null && _cnicBackPath != null) {
+      cnicUrls = await Future.wait([
+        _appwriteProviderService.uploadFileforURL(_cnicFrontPath!, 'cnic_images'),
+        _appwriteProviderService.uploadFileforURL(_cnicBackPath!, 'cnic_images'),
+      ]);
+    }
 
-    final String licenseImageUrl = await _appwriteProviderService.uploadFileforURL(
-      _licenseDocumentPath!,
-      'license_documents',
-    );
+    String? licenseImageUrl;
+    if (_licenseDocumentPath != null) {
+      licenseImageUrl = await _appwriteProviderService.uploadFileforURL(
+        _licenseDocumentPath!,
+        'license_documents',
+      );
+    }
 
-    final List<String> galleryUrls = await Future.wait(
-      _galleryImagepath.map((file) => _appwriteProviderService.uploadFileforURL(
-            file,
-            'gallery_images',
-          )),
-    );
+    List<String> galleryUrls = [];
+    if (_galleryImagepath.isNotEmpty) {
+      galleryUrls = await Future.wait(
+        _galleryImagepath.map((file) => _appwriteProviderService.uploadFileforURL(
+              file,
+              'gallery_images',
+            )),
+      );
+    }
 
-    final List<String> certificationUrls = await Future.wait(
-      _certificationPaths.map((file) => _appwriteProviderService.uploadFileforURL(
-            file,
-            'certifications',
-          )),
-    );
+    List<String> certificationUrls = [];
+    if (_certificationPaths.isNotEmpty) {
+      certificationUrls = await Future.wait(
+        _certificationPaths.map((file) => _appwriteProviderService.uploadFileforURL(
+              file,
+              'certifications',
+            )),
+      );
+    }
 
-    // 2. Create ServiceProvider object
+    // 2. Create ServiceProvider object with null-safe values
     final serviceProvider = ServiceProvider(
-      id: '', 
+      id: '',
       name: _nameController.text,
       email: _emailController.text,
       gender: _selectedGender,
       phone: _phoneController.text,
-      imageUrl: profileImageUrl,
+      imageUrl: profileImageUrl ?? '', // Provide default empty string if null
       services: _selectedServices,
       rating: 0,
       reviewCount: 0,
@@ -1731,7 +1593,7 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
         issuingAuthority: _issuingAuthorityController.text,
         issueDate: _licenseIssueDate!,
         expiryDate: _licenseExpiryDate!,
-        licenseImageUrl: licenseImageUrl,
+        licenseImageUrl: licenseImageUrl ?? '', // Provide default empty string if null
       ),
       reviewList: [],
     );

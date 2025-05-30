@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:healthcare/providers/user_provider.dart';
+import 'package:healthcare/screens/user/chat_list_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:healthcare/screens/user/ai_chat.dart';
 import 'package:healthcare/screens/user/appointments_screen.dart';
@@ -78,12 +79,12 @@ class HomeScreen extends StatelessWidget {
                 label: 'Home',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.medical_services),
-                label: 'Services',
-              ),
-              BottomNavigationBarItem(
                 icon: Icon(Icons.calendar_month),
                 label: 'Appointments',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.chat_rounded),
+                label: 'Chat',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person),
@@ -92,22 +93,19 @@ class HomeScreen extends StatelessWidget {
             ],
             currentIndex: 0,
             onTap: (index) {
-              if (index == 1) { // Services tab
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ServiceProviderListingScreen(
-                      categoryName: 'Nurse',
-                    ),
-                  ),
-                );
-              } else
-              if (index == 2) { // Appointments tab
+              if (index == 1) { // Appointments tab
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AppointmentsScreen()),
                 );
-              }else if (index == 3) { // Profile tab
+              } else if (index == 2) { // Chat tab
+                final userProvider = Provider.of<UserProvider>(context, listen: false);  
+                final userID = userProvider.userId ?? '';
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChatListScreen(userId: userID)),
+                );
+              } else if (index == 3) { // Profile tab
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SettingsScreen()),

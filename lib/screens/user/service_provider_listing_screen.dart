@@ -23,6 +23,7 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
   bool _showElevation = false;
   bool _isLoading = true;
   List<ServiceProvider> _providers = [];
+  List<ServiceProvider> _allProviders = [];
   String? _error;
 
   @override
@@ -42,6 +43,7 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
       final providers = await _appwriteService.getServiceProviders(widget.categoryName);
 
       setState(() {
+        _allProviders = providers;
         _providers = providers;
         _isLoading = false;
       });
@@ -53,27 +55,17 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
     }
   }
 
-  Future<void> _filterProviders(String query) async {
-    if (query.isEmpty) {
-      await _fetchServiceProviders();
-    } else {
-      try {
-        setState(() => _isLoading = true);
-        final providers = await _appwriteService.searchServiceProviders(
-          widget.categoryName,
-          query,
-        );
-        setState(() {
-          _providers = providers;
-          _isLoading = false;
-        });
-      } catch (e) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
+  void _filterProviders(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _providers = _allProviders;
+      } else {
+        _providers = _allProviders
+            .where((provider) =>
+                provider.name.toLowerCase().contains(query.toLowerCase()))
+            .toList();
       }
-    }
+    });
   }
 
   void _onScroll() {
@@ -192,14 +184,7 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
       color: Colors.white,
       child: TextField(
         controller: _searchController,
-        onChanged: (value) {
-          // Add debounce to prevent too many API calls
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (value == _searchController.text) {
-              _filterProviders(value);
-            }
-          });
-        },
+        onChanged: _filterProviders,
         decoration: InputDecoration(
           hintText: 'Search providers...',
           hintStyle: TextStyle(color: Colors.grey[400]),

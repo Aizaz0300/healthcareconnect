@@ -336,28 +336,6 @@ class AppwriteService {
       throw Exception('Failed to load service providers');
     }
   }
-
-  Future<List<ServiceProvider>> searchServiceProviders(String category, String searchQuery) async {
-    try {
-      final response = await databases.listDocuments(
-        databaseId: _database,
-        collectionId: _providerCollection,
-        queries: [
-          Query.equal('services', [category]),
-          Query.equal('status', 'approved'),
-          Query.search('name', searchQuery),  // Search by provider name
-        ],
-      );
-
-      return response.documents.map((doc) {
-        return ServiceProvider.fromJson(doc.data);
-      }).toList();
-    } catch (e) {
-      print('Error searching service providers: $e');
-      throw Exception('Failed to search service providers');
-    }
-  }
-
 }
 
 

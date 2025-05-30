@@ -57,8 +57,7 @@ class AppwriteProviderService {
       'reviewList': provider.reviewList
           .map((rev) => jsonEncode(rev.toJson()))
           .toList(),
-      'status': 'pending', // pending, approved, rejected
-      'id': response.$id,
+      'status': 'pending',
     };
 
     // Create provider document in Appwrite database.

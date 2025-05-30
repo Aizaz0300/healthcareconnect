@@ -6,6 +6,7 @@ import 'package:healthcare/screens/provider/manage_availability_screen.dart';
 import '/constants/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
+import 'package:healthcare/screens/provider/provider_chat_list_screen.dart';
 
 class ProviderDashboardScreen extends StatefulWidget {
   const ProviderDashboardScreen({super.key});
@@ -833,7 +834,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           children: [
             _buildNavItem(Icons.home_outlined, 'Home', true),
             _buildNavItem(Icons.calendar_today_outlined, 'Appointments', false),
-            const SizedBox(width: 32), // Space for FAB
             _buildNavItem(Icons.message_outlined, 'Messages', false),
             _buildNavItem(Icons.person_outline, 'Profile', false),
           ],
@@ -845,7 +845,18 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   Widget _buildNavItem(IconData icon, String label, bool isActive) {
     return InkWell(
       onTap: () {
-        // TODO: Handle navigation
+        if (label == 'Messages') {
+          final providerData = Provider.of<ServiceProviderProvider>(context, listen: false).provider;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProviderChatListScreen(
+                providerId: providerData?.id ?? '',
+              ),
+            ),
+          );
+        }
+        // TODO: Handle other navigation items
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,

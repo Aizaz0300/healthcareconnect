@@ -4,25 +4,25 @@ import '/models/message.dart';
 import '/services/chat_service.dart';
 import 'package:appwrite/appwrite.dart';
 
-class ChatScreen extends StatefulWidget {
+class ProviderChatScreen extends StatefulWidget {
   final String chatId;
-  final String providerName;
-  final String providerId;  // Add this
+  final String patientName;
+  final String patientId;  // Add this
   final String currentUserId;
 
-  const ChatScreen({
+  const ProviderChatScreen({
     super.key,
     required this.chatId,
-    required this.providerName,
-    required this.providerId,  // Add this
+    required this.patientName,
+    required this.patientId,  // Add this
     required this.currentUserId,
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ProviderChatScreen> createState() => _ProviderChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
+class _ProviderChatScreenState extends State<ProviderChatScreen> with WidgetsBindingObserver {
   final _messageController = TextEditingController();
   final List<Message> _messages = [];
   late final ChatService _chatService;
@@ -36,7 +36,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _chatService = ChatService();
     _initializeChat();
-    _markMessagesAsRead();  // Mark messages as read on open
+    _markMessagesAsRead();  // Add this
   }
 
   @override
@@ -52,23 +52,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _markMessagesAsRead();
     }
-  }
-
-  Future<void> _markMessagesAsRead() async {
-    try {
-      await _chatService.markMessagesAsRead(
-        widget.chatId,
-        widget.currentUserId,
-      );
-    } catch (e) {
-      debugPrint('Error marking messages as read: $e');
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _markMessagesAsRead();
   }
 
   Future<void> _initializeChat() async {
@@ -128,6 +111,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _markMessagesAsRead() async {
+    try {
+      await _chatService.markMessagesAsRead(
+        widget.chatId,
+        widget.currentUserId,
+      );
+    } catch (e) {
+      debugPrint('Error marking messages as read: $e');
+    }
+  }
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
@@ -137,7 +131,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       await _chatService.sendMessage(
         chatId: widget.chatId,
         senderId: widget.currentUserId,
-        receiverId: widget.providerId, 
+        receiverId: widget.patientId,  // Use patient ID as receiver
         message: text,
       );
     } catch (e) {
@@ -154,10 +148,31 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text(widget.providerName),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.patientName),
+            const Text(
+              'Patient',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: Colors.white,
         elevation: 0.5,
         foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              // Add patient info viewing functionality here
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: _isLoading
@@ -246,7 +261,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 8),
             Text(
-              'Say hello to your care provider to begin.',
+              'Start the conversation with your patient.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
@@ -269,31 +284,35 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
               child: TextField(
                 controller: _messageController,
                 decoration: const InputDecoration(
                   hintText: 'Type a message...',
-                  border: OutlineInputBorder(), 
-                  contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
+                maxLines: null,
+                textCapitalization: TextCapitalization.sentences,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: AppColors.primary,
-            radius: 22,
-            child: IconButton(
-              icon: const Icon(Icons.send, size: 18, color: Colors.white),
-              onPressed: _sendMessage,
+            const SizedBox(width: 8),
+            CircleAvatar(
+              backgroundColor: AppColors.primary,
+              radius: 22,
+              child: IconButton(
+                icon: const Icon(Icons.send, size: 18, color: Colors.white),
+                onPressed: _sendMessage,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

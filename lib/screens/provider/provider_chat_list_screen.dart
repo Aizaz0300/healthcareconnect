@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/models.dart';
 import '/constants/app_colors.dart';
 import '/services/chat_service.dart';
-import 'chat_screen.dart';
+import 'provider_chat_screen.dart';
 
-class ChatListScreen extends StatefulWidget {
-  final String userId;
+class ProviderChatListScreen extends StatefulWidget {
+  final String providerId;
 
-  const ChatListScreen({
+  const ProviderChatListScreen({
     super.key,
-    required this.userId,
+    required this.providerId,
   });
 
   @override
-  State<ChatListScreen> createState() => _ChatListScreenState();
+  State<ProviderChatListScreen> createState() => _ProviderChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class _ProviderChatListScreenState extends State<ProviderChatListScreen> {
   late final ChatService _chatService;
   List<Document> _chats = [];
   bool _isLoading = true;
@@ -36,7 +36,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
         _error = null;
       });
 
-      final chats = await _chatService.getChatList(widget.userId);
+      // Using the same getChatList but with providerId
+      final chats = await _chatService.getProviderChatList(widget.providerId);
       if (mounted) {
         setState(() {
           _chats = chats;
@@ -58,11 +59,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatScreen(
+        builder: (context) => ProviderChatScreen(
           chatId: chat.$id,
-          providerName: chat.data['provider_name'],
-          providerId: chat.data['provider_id'],
-          currentUserId: widget.userId,
+          patientName: chat.data['user_name'],
+          patientId: chat.data['user_id'],
+          currentUserId: widget.providerId,
         ),
       ),
     );
@@ -76,7 +77,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: const Text('Messages'),
+        title: const Text('Patient Messages'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0.5,
@@ -127,13 +128,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           itemBuilder: (context, index) {
                             final chat = _chats[index];
                             final bool hasUnread = (chat.data['unread_count'] ?? 0) > 0 &&
-                                chat.data['last_sender_id'] != widget.userId;
+                                chat.data['last_sender_id'] != widget.providerId;
+                            final int unreadCount = hasUnread ? chat.data['unread_count'] : 0;
 
                             return _ChatListItem(
-                              name: chat.data['provider_name'],
+                              name: chat.data['user_name'],
                               lastMessage: chat.data['last_message'] ?? 'No messages yet',
                               time: _formatDateTime(DateTime.parse(chat.data['last_message_time'])),
-                              unreadCount: hasUnread ? (chat.data['unread_count'] ?? 0) : 0,
+                              unreadCount: unreadCount,
                               onTap: () => _onChatTap(chat),
                             );
                           },
@@ -152,7 +154,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Icon(Icons.chat_bubble_outline, size: 80, color: AppColors.primary.withOpacity(0.3)),
             const SizedBox(height: 24),
             Text(
-              'No conversations yet',
+              'No patient messages',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -161,7 +163,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Connect with a healthcare provider to start chatting.',
+              'You will see messages from your patients here.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
@@ -227,53 +229,63 @@ class _ChatListItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: TextStyle(
-                        fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
-                        fontSize: 16,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        if (unreadCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      lastMessage,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: unreadCount > 0 ? Colors.black87 : Colors.black54,
-                        fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            lastMessage,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: unreadCount > 0 ? Colors.black87 : Colors.black54,
+                              fontSize: 14,
+                              fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          time,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: unreadCount > 0 ? AppColors.primary : Colors.grey,
+                            fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    time,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: unreadCount > 0 ? AppColors.primary : Colors.grey,
-                    ),
-                  ),
-                  if (unreadCount > 0) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        unreadCount.toString(),
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ],
               ),
             ],
           ),

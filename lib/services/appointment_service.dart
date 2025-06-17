@@ -72,4 +72,117 @@ class AppointmentService {
       rethrow;
     }
   }
+
+  Future<List<Appointment>> getProviderPendingAppointments(String providerId) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        queries: [
+          Query.equal('providerId', providerId),
+          Query.equal('status', 'pending'),
+        ],
+      );
+
+      return response.documents.map((doc) => Appointment.fromJson(doc.data)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<Appointment>> getProviderUpcomingAppointments(String providerId) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        queries: [
+          Query.equal('providerId', providerId),
+          Query.equal('status', ['confirmed', 'active']),
+        ],
+      );
+
+      return response.documents.map((doc) => Appointment.fromJson(doc.data)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<Appointment>> getProviderPastAppointments(String providerId) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        queries: [
+          Query.equal('providerId', providerId),
+          Query.equal('status', ['completed', 'cancelled', 'rejected']),
+        ],
+      );
+
+      return response.documents.map((doc) => Appointment.fromJson(doc.data)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<Appointment>> getProviderCompletedAppointments(String providerId) async {
+    try {
+      final response = await databases.listDocuments(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        queries: [
+          Query.equal('providerId', providerId),
+          Query.equal('status', ['completed']),
+        ],
+      );
+
+      return response.documents.map((doc) => Appointment.fromJson(doc.data)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
+  Future<void> updateAppointmentStatus(String appointmentId, String status) async {
+    try {
+      await databases.updateDocument(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        documentId: appointmentId,
+        data: {
+          'status': status,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> hasReview(String appointmentId) async {
+    try {
+      final response = await databases.getDocument(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        documentId: appointmentId,
+      );
+      
+      return response.data['hasReview'] == true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> markReviewSubmitted(String appointmentId) async {
+    try {
+      await databases.updateDocument(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        documentId: appointmentId,
+        data: {
+          'hasReview': true,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

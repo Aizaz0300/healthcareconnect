@@ -7,18 +7,65 @@ import 'package:healthcare/screens/user/appointments_screen.dart';
 import 'package:healthcare/screens/user/service_provider_listing_screen.dart';
 import '/constants/app_colors.dart';
 
-
+import '/widgets/action_card.dart';
 import 'storage_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
+import 'package:healthcare/services/appointment_service.dart';
+import 'package:healthcare/services/appwrite_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _appointmentService = AppointmentService();
+  final _appwriteService = AppwriteService();
+  int _upcomingAppointments = 0;
+  int _previousAppointments = 0;
+  int _documentsCount = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatistics();
+  }
+
+  Future<void> _loadStatistics() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userId = userProvider.userId;
+    if (userId == null) return;
+
+    try {
+      // Get upcoming appointments
+      final activeAppointments = await _appointmentService.getActiveAppointments(userId);
+      // Get previous appointments
+      final historyAppointments = await _appointmentService.getHistoryAppointments(userId);
+      // Get documents count
+      final fileList = await _appwriteService.getFilesByUser(userId);
+
+      if (mounted) {
+        setState(() {
+          _upcomingAppointments = activeAppointments.length;
+          _previousAppointments = historyAppointments.length;
+          _documentsCount = fileList.files.length;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading statistics: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       extendBodyBehindAppBar: true,
@@ -254,19 +301,31 @@ class HomeScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildStat(Icons.calendar_today, '8', 'Upcoming\nAppointments'),
+                        _buildStat(
+                          Icons.calendar_today,
+                          _isLoading ? '-' : _upcomingAppointments.toString(),
+                          'Upcoming\nAppointments'
+                        ),
                         Container(
                           height: 40,
                           width: 1,
                           color: Colors.grey[300],
                         ),
-                        _buildStat(Icons.medical_services, '2', 'Previous\nAppointments'),
+                        _buildStat(
+                          Icons.medical_services,
+                          _isLoading ? '-' : _previousAppointments.toString(),
+                          'Previous\nAppointments'
+                        ),
                         Container(
                           height: 40,
                           width: 1,
                           color: Colors.grey[300],
                         ),
-                        _buildStat(Icons.local_hospital, '5', 'Documents\nStored'),
+                        _buildStat(
+                          Icons.local_hospital,
+                          _isLoading ? '-' : _documentsCount.toString(),
+                          'Documents\nStored'
+                        ),
                       ],
                     ),
                   ),
@@ -321,7 +380,7 @@ class HomeScreen extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _ActionCard(
+                child: ActionCard(
                   icon: Icons.event,
                   title: 'Appointments',
                   subtitle: 'View appointments',
@@ -335,7 +394,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(width: 16),
                Expanded(
-                child: _ActionCard(
+                child: ActionCard(
                   icon: Icons.message,
                   title: 'HealthChat AI',
                   subtitle: 'Smart Care',
@@ -354,7 +413,7 @@ class HomeScreen extends StatelessWidget {
            Row(
             children: [
               Expanded(
-                child: _ActionCard(
+                child: ActionCard(
                   icon: Icons.folder_open,
                   title: 'Documents',
                   subtitle: 'View your files',
@@ -368,7 +427,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _ActionCard(
+                child: ActionCard(
                   icon: Icons.settings,
                   title: 'Settings',
                   subtitle: 'Customize Profile',
@@ -644,75 +703,6 @@ class _ServiceCard extends StatelessWidget {
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final Color iconColor;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.iconColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
               ),
             ),
           ],

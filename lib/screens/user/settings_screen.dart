@@ -188,8 +188,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 16),
                     _buildContactInfo(),
                     const SizedBox(height: 16),
-                    _buildPreferences(),
-                    const SizedBox(height: 16),
                     _buildActionButtons(),
                     const SizedBox(height: 16),
                   ],
@@ -385,39 +383,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildPreferences() {
-    return _buildSection(
-      'Preferences',
-      Icons.settings_outlined,
-      Column(
-        children: [
-          _buildSwitchTile(
-            'Notifications',
-            'Receive push notifications',
-            true,
-            (value) {},
-          )
-        ],
-      ),
-    );
-  }
 
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          ElevatedButton(
-            onPressed: () {
-              // Implement password change
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              minimumSize: const Size(double.infinity, 50),
-            ),
-            child: const Text('Change Password'),
-          ),
-          const SizedBox(height: 16),
           OutlinedButton(
             onPressed: _handleLogout,
             style: OutlinedButton.styleFrom(
@@ -561,21 +532,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSwitchTile(
-    String title,
-    String subtitle,
-    bool value,
-    Function(bool) onChanged,
-  ) {
-    return SwitchListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      value: value,
-      onChanged: onChanged,
-      activeColor: AppColors.primary,
     );
   }
 

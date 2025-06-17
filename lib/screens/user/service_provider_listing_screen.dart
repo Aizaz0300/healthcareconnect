@@ -247,6 +247,7 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
       itemBuilder: (context, index) {
         return _ProviderCard(
           provider: _providers[index],
+          categoryName: widget.categoryName,
         );
       },
     );
@@ -255,9 +256,11 @@ class _ServiceProviderListingScreenState extends State<ServiceProviderListingScr
 
 class _ProviderCard extends StatelessWidget {
   final ServiceProvider provider;
+  final String categoryName;
 
   const _ProviderCard({
     required this.provider,
+    required this.categoryName,
   });
 
   @override
@@ -414,6 +417,7 @@ class _ProviderCard extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => ServiceProviderProfileScreen(
                           provider: provider,
+                          selectedService: categoryName, // Pass the categoryName as selectedService
                         ),
                       ),
                     );

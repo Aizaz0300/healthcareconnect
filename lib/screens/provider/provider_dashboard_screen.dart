@@ -1,24 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:healthcare/screens/provider/edit_provider_profile_screen.dart';
+import 'package:healthcare/screens/provider/provider_reviews_screen.dart';
+import 'package:healthcare/screens/user/ai_chat.dart';
+import 'package:healthcare/services/appointment_service.dart';
 import 'package:provider/provider.dart';
 import 'package:healthcare/providers/service_provider_provider.dart';
-import 'package:healthcare/screens/provider/appointment_request_screen.dart';
+import 'package:healthcare/screens/provider/appointments_screen.dart';
 import 'package:healthcare/screens/provider/manage_availability_screen.dart';
 import '/constants/app_colors.dart';
-import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import 'package:healthcare/screens/provider/provider_chat_list_screen.dart';
+import '/widgets/action_card.dart';
 
 class ProviderDashboardScreen extends StatefulWidget {
   const ProviderDashboardScreen({super.key});
 
   @override
-  State<ProviderDashboardScreen> createState() => _ProviderDashboardScreenState();
+  State<ProviderDashboardScreen> createState() =>
+      _ProviderDashboardScreenState();
 }
 
 class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
+  String _upcomingAppointments = "0";
+  String _completedAppointments = "0";
+  int _upcomingPercentage = 0;
+  int _completedPercentage = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppointmentsData();
+  }
+
+  Future<void> _loadAppointmentsData() async {
+    final AppointmentService appointmentService = AppointmentService();
+    final provider = Provider.of<ServiceProviderProvider>(context, listen: false).provider;
+
+    try {
+      final results = await Future.wait([
+        appointmentService.getProviderUpcomingAppointments(provider?.id ?? ''),
+        appointmentService.getProviderCompletedAppointments(provider?.id ?? ''),
+      ]);
+
+      int upcoming = results[0].length;
+      int completed = results[1].length;
+      int total = upcoming + completed;
+
+      setState(() {
+        _upcomingAppointments = upcoming.toString();
+        _completedAppointments = completed.toString();
+        _upcomingPercentage = total > 0 ? ((upcoming / total) * 100).round() : 0;
+        _completedPercentage = total > 0 ? ((completed / total) * 100).round() : 0;
+        _isLoading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _isLoading = false;
+      });
+      // Handle error appropriately
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -70,7 +115,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 Stack(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                      icon: const Icon(Icons.notifications_outlined,
+                          color: Colors.white),
                       onPressed: () {
                         // TODO: Navigate to notifications
                       },
@@ -89,12 +135,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                     ),
                   ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                  onPressed: () {
-                    // TODO: Navigate to settings
-                  },
-                ),
               ],
             ),
             SliverToBoxAdapter(
@@ -108,13 +148,11 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildDailySchedule(),
-                          const SizedBox(height: 24),
-                          _buildEarningsCard(),
-                          const SizedBox(height: 24),
                           _buildStatisticsCards(),
                           const SizedBox(height: 24),
-                          _buildIncomingRequests(),
+                          _buildQuickActions(context),
+                          const SizedBox(height: 24),
+                          _buildProviderTips()
                         ],
                       ),
                     ),
@@ -126,19 +164,6 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ManageAvailabilityScreen(),
-            ),
-          );
-        },
-        child: const Icon(Icons.calendar_month),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -185,9 +210,10 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
               child: CircleAvatar(
                 radius: 32,
                 backgroundColor: AppColors.primary.withOpacity(0.1),
-                backgroundImage: providerData?.imageUrl != null 
-                    ? NetworkImage(providerData!.imageUrl!)
-                    : const AssetImage('assets/images/default_profile.png') as ImageProvider,
+                backgroundImage: providerData?.imageUrl != null
+                    ? NetworkImage(providerData!.imageUrl)
+                    : const AssetImage('assets/images/default_profile.png')
+                        as ImageProvider,
               ),
             ),
           ),
@@ -207,7 +233,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -246,19 +273,12 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                 Row(
                   children: [
                     _buildProfileStat(
-                      providerData?.experience.toString() ?? "0", 
-                      'Years Exp.'
-                    ),
+                        '${providerData?.experience ?? 0}', 'Years Exp.'),
                     _buildProfileStat(
-                     // providerData?.totalClients?.toString() ??
-                       "0", 
-                      'Clients'
-                    ),
+                        providerData?.services.length.toString() ?? "0",
+                        'Services'),
                     _buildProfileStat(
-                     // providerData?.totalSessions?.toString() ?? 
-                      "0", 
-                      'Sessions'
-                    ),
+                        providerData?.reviewCount.toString() ?? "0", 'Reviews'),
                   ],
                 ),
               ],
@@ -300,201 +320,34 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     );
   }
 
-  Widget _buildDailySchedule() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Today\'s Schedule',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                // TODO: Navigate to full schedule view
-              },
-              child: const Text('See All'),
-            ),
-          ],
-        ),
-        Container(
-          height: 90,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildTimeSlot('09:00 AM', 'John Smith', 'Confirmed', Colors.green),
-              _buildTimeSlot('11:30 AM', 'Meeting', 'Personal', Colors.blue),
-              _buildTimeSlot('02:00 PM', 'Emma Davis', 'Confirmed', Colors.green),
-              _buildTimeSlot('04:30 PM', 'Break', 'Personal', Colors.grey),
-              _buildTimeSlot('05:30 PM', 'Jane Wilson', 'Pending', Colors.orange),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimeSlot(String time, String title, String status, Color color) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 5,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            time,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 13,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 11,
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEarningsCard() {
-    final providerData = Provider.of<ServiceProviderProvider>(context).provider;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.2),
-            blurRadius: 15,
-            spreadRadius: 0,
-            offset: const Offset(0, 5),
-          ),
-        ],
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary,
-            Color.fromARGB(255, 17, 107, 196),
-          ],
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'This Month\'s Earnings',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.account_balance_wallet,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  //'\$${providerData?.monthlyEarnings?.toStringAsFixed(2) ?? "2,450.00"}',
-                  "PKR 2,450.00",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                
-              ],
-            ),
-            
-          ],
-        ),
-      ),
-    );
-  }
-
-
   Widget _buildStatisticsCards() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Row(
       children: [
         Expanded(
           child: _buildStatisticCard(
-            title: 'Upcoming',
-            subtitle: 'Appointments',
-            value: '45',
+            title: 'Appointments',
+            subtitle: 'Upcoming',
+            value: _upcomingAppointments,
             icon: Icons.calendar_today,
             color: Colors.blue,
             bgColor: Colors.blue.withOpacity(0.1),
+            percentage: _upcomingPercentage,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _buildStatisticCard(
-            title: 'Active',
-            subtitle: 'Clients',
-            value: '12',
-            icon: Icons.people,
+            title: 'Appointments',
+            subtitle: 'Completed',
+            value: _completedAppointments,
+            icon: Icons.medical_services,
             color: Colors.green,
             bgColor: Colors.green.withOpacity(0.1),
+            percentage: _completedPercentage,
           ),
         ),
       ],
@@ -508,6 +361,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     required IconData icon,
     required Color color,
     required Color bgColor,
+    required int percentage,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -581,7 +435,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             child: Row(
               children: [
                 Expanded(
-                  flex: int.parse(value),
+                  flex: percentage,
                   child: Container(
                     decoration: BoxDecoration(
                       color: color,
@@ -590,7 +444,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                   ),
                 ),
                 Expanded(
-                  flex: 100 - int.parse(value),
+                  flex: 100 - percentage,
                   child: Container(),
                 ),
               ],
@@ -601,216 +455,146 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
     );
   }
 
-  Widget _buildIncomingRequests() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Appointment Requests',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+  Widget _buildQuickActions(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
+          ),
+          const SizedBox(height: 16),
+
+          // First Row
+          Row(
+            children: [
+              Expanded(
+                child: ActionCard(
+                  icon: Icons.local_hospital,
+                  title: 'Appointments',
+                  subtitle: 'View appointments',
+                  color: Colors.lightBlue.shade50,
+                  iconColor: Colors.lightBlue.shade800,
+                  onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AppointmentRequestsScreen(),
-                    ),
-                  );
-              },
-              child: const Text('See All'),
-            ),
-          ],
-        ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 3,
-          itemBuilder: (context, index) {
-            final patients = ['Emma Wilson', 'Michael Brown', 'Sophia Garcia'];
-            final services = ['Physiotherapy Session', 'Post-surgery Recovery', 'Sports Injury Treatment'];
-            final images = [
-              'https://randomuser.me/api/portraits/women/32.jpg',
-              'https://randomuser.me/api/portraits/men/45.jpg',
-              'https://randomuser.me/api/portraits/women/68.jpg',
-            ];
-            return InkWell(
-              onTap: () {
-                // TODO: Navigate to appointment details screen
-                Navigator.push(
+                        builder: (context) => const AppointmentScreen()),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ActionCard(
+                  icon: Icons.access_time,
+                  title: 'Availability',
+                  subtitle: 'Manage service slots',
+                  color: Colors.indigo.shade50,
+                  iconColor: Colors.indigo.shade700,
+                  onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AppointmentRequestsScreen(),
-                    ),
-                  );
-              },
-              child: _buildAppointmentRequestPreview(
-                patientName: patients[index],
-                patientImage: images[index],
-                service: services[index],
-                dateTime: DateTime.now().add(Duration(days: index + 1, hours: (index * 2) + 9)),
+                        builder: (context) => const ManageAvailabilityScreen()),
+                  ),
+                ),
               ),
-            );
-          },
-        ),
-      ],
-    );
-  }
+            ],
+          ),
 
-  Widget _buildAppointmentRequestPreview({
-    required String patientName,
-    required String patientImage,
-    required String service,
-    required DateTime dateTime,
-  }) {
-    final formattedDate = DateFormat('E, MMM d').format(dateTime);
-    final formattedTime = DateFormat('h:mm a').format(dateTime);
+          const SizedBox(height: 16),
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
+          // Second Row
+          Row(
+            children: [
+              Expanded(
+                child: ActionCard(
+                  icon: Icons.message_outlined,
+                  title: 'Chats',
+                  subtitle: 'Conversations',
+                  color: Colors.green.shade50,
+                  iconColor: Colors.green.shade800,
+                  onTap: () {
+                    final providerData = Provider.of<ServiceProviderProvider>(
+                            context,
+                            listen: false)
+                        .provider;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProviderChatListScreen(
+                          providerId: providerData?.id ?? '',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ActionCard(
+                  icon: Icons.rate_review_outlined,
+                  title: 'Reviews',
+                  subtitle: 'View feedback',
+                  color: Colors.amber.shade50,
+                  iconColor: Colors.amber.shade800,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ProviderReviewsScreen()),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Third Row
+          Row(
+            children: [
+              Expanded(
+                child: ActionCard(
+                  icon: Icons.lightbulb_outline,
+                  title: 'HealthChat AI',
+                  subtitle: 'Smart Care',
+                  color: Colors.teal.shade50,
+                  iconColor: Colors.teal.shade800,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const SmartCareConnect()),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ActionCard(
+                  icon: Icons.account_circle,
+                  title: 'Settings',
+                  subtitle: 'Customize Profile',
+                  color: Colors.deepPurple.shade50,
+                  iconColor: Colors.deepPurple.shade700,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProviderProfileScreen(
+                        provider: Provider.of<ServiceProviderProvider>(
+                          context,
+                          listen: false,
+                        ).provider!,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage: NetworkImage(patientImage),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        patientName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        service,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildRequestDetail(
-                    Icons.calendar_today,
-                    'Date',
-                    formattedDate,
-                  ),
-                  Container(
-                    height: 40,
-                    width: 1,
-                    color: Colors.grey.shade300,
-                  ),
-                  _buildRequestDetail(
-                    Icons.access_time,
-                    'Time',
-                    formattedTime,
-                  ),
-                  Container(
-                    height: 40,
-                    width: 1,
-                    color: Colors.grey.shade300,
-                  ),
-                  _buildRequestDetail(
-                    Icons.attach_money,
-                    'Fee',
-                    '\$85',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  'Tap to view details',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequestDetail(IconData icon, String label, String value) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          size: 16,
-          color: AppColors.primary,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-        ),
-      ],
     );
   }
 
@@ -845,14 +629,35 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   Widget _buildNavItem(IconData icon, String label, bool isActive) {
     return InkWell(
       onTap: () {
-        if (label == 'Messages') {
-          final providerData = Provider.of<ServiceProviderProvider>(context, listen: false).provider;
+        if (label == 'Home') {
+          Navigator.pushReplacementNamed(context, '/provider_dashboard');
+        } else if (label == 'Appointments') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AppointmentScreen(),
+            ),
+          );
+        } else if (label == 'Messages') {
+          final providerData =
+              Provider.of<ServiceProviderProvider>(context, listen: false)
+                  .provider;
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ProviderChatListScreen(
                 providerId: providerData?.id ?? '',
               ),
+            ),
+          );
+        } else if (label == 'Profile') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EditProviderProfileScreen(
+                  provider: Provider.of<ServiceProviderProvider>(context,
+                          listen: false)
+                      .provider!),
             ),
           );
         }
@@ -871,6 +676,116 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
               fontSize: 12,
               color: isActive ? AppColors.primary : Colors.grey,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderTips() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            'Wellness Tips for You',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildTipCard(
+          icon: Icons.self_improvement,
+          title: 'Take Short Breaks',
+          subtitle:
+              'Short mental breaks between appointments help reduce burnout.',
+          gradientColors: [
+            AppColors.primary.withOpacity(0.8),
+            Colors.teal.shade700,
+          ],
+          iconColor: AppColors.primary,
+        ),
+        const SizedBox(height: 16),
+        _buildTipCard(
+          icon: Icons.fitness_center,
+          title: 'Stretch Often',
+          subtitle:
+              'Light stretching prevents stiffness during long service hours.',
+          gradientColors: [
+            AppColors.primary.withOpacity(0.8),
+            const Color.fromARGB(255, 57, 87, 171),
+          ],
+          iconColor: Colors.deepPurple.shade700,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTipCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required List<Color> gradientColors,
+    required Color iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.last.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 28,
+              color: iconColor,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

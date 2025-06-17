@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:appwrite/appwrite.dart';
+import 'package:healthcare/models/review.dart';
 import '../models/service_provider.dart';
 import '../constants/api_constants.dart';
 import '../utils/auth_exceptions.dart';
@@ -283,6 +284,37 @@ class AppwriteProviderService {
     } catch (e) {
       print('Error getting current user: $e');
       return null;
+    }
+  }
+
+  Future<void> submitReview(String providerId, Review review) async {
+    try {
+      // Get current provider data
+      final provider = await getProvider(providerId);
+      
+      // Calculate new rating
+      final totalRatingPoints = (provider.rating * provider.reviewCount) + review.rating;
+      final newReviewCount = provider.reviewCount + 1;
+      final newRating = totalRatingPoints / newReviewCount;
+
+      // Update provider document
+      final updates = {
+        'rating': newRating,
+        'reviewCount': newReviewCount,
+        'reviewList': [
+          ...provider.reviewList.map((r) => jsonEncode(r.toJson())),
+          jsonEncode(review.toJson()),
+        ],
+      };
+
+      await databases.updateDocument(
+        databaseId: _database,
+        collectionId: _providerCollection,
+        documentId: providerId,
+        data: updates,
+      );
+    } catch (e) {
+      throw Exception('Failed to submit review: ${e.toString()}');
     }
   }
 }

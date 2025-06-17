@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:healthcare/models/review.dart';
+import 'package:healthcare/services/appwrite_provider_service.dart';
 import 'package:provider/provider.dart';
 import 'package:healthcare/models/appointment.dart';
 import 'package:healthcare/services/appointment_service.dart';
@@ -43,8 +45,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     });
 
     try {
-      final activeAppointments = await _appointmentService.getActiveAppointments(userId);
-      final historyAppointments = await _appointmentService.getHistoryAppointments(userId);
+      final activeAppointments =
+          await _appointmentService.getActiveAppointments(userId);
+      final historyAppointments =
+          await _appointmentService.getHistoryAppointments(userId);
 
       setState(() {
         _activeAppointments = activeAppointments;
@@ -459,19 +463,19 @@ class _AppointmentDetailsModal extends StatelessWidget {
       final chatService = ChatService();
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final username = '${userProvider.firstName} ${userProvider.lastName}';
-      
+
       if (userProvider.userId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please login to chat')),
         );
         return;
       }
-      
+
       final chat = await chatService.getOrCreateChat(
         userId: userProvider.userId!,
         providerId: appointment.providerId,
         providerName: appointment.providerName,
-        userName: username, 
+        userName: username,
       );
 
       if (context.mounted) {
@@ -482,7 +486,7 @@ class _AppointmentDetailsModal extends StatelessWidget {
               chatId: chat.$id,
               providerName: appointment.providerName,
               currentUserId: userProvider.userId!,
-              providerId:  appointment.providerId,
+              providerId: appointment.providerId,
             ),
           ),
         );
@@ -494,6 +498,16 @@ class _AppointmentDetailsModal extends StatelessWidget {
         );
       }
     }
+  }
+
+  void _showReviewDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => ReviewDialog(
+        appointmentId: appointment.id,
+        providerId: appointment.providerId,
+      ),
+    );
   }
 
   @override
@@ -549,6 +563,15 @@ class _AppointmentDetailsModal extends StatelessWidget {
     );
   }
 
+  ButtonStyle buttonStyle(Color backgroundColor, Color foregroundColor) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      minimumSize: const Size(double.infinity, 48),
+    );
+  }
+
   Widget _buildActions(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -570,23 +593,34 @@ class _AppointmentDetailsModal extends StatelessWidget {
                 onPressed: () => _showCancelConfirmation(context),
                 icon: const Icon(Icons.cancel_outlined, color: Colors.red),
                 label: const Text('Cancel Appointment'),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  backgroundColor: Colors.red.withOpacity(0.1),
-                ),
+                style: buttonStyle(Colors.red.withOpacity(0.1), Colors.red),
               ),
             ),
-          if (_canBeCancelled)
-            const SizedBox(width: 16),
+          if (_canBeCancelled) const SizedBox(width: 16),
+          if (appointment.status == 'completed')
+            FutureBuilder<bool>(
+              future: AppointmentService().hasReview(appointment.id),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && !snapshot.data!) {
+                  return Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showReviewDialog(context),
+                      icon: const Icon(Icons.rate_review_outlined),
+                      label: const Text('Submit Review'),
+                      style: buttonStyle(AppColors.primary, Colors.white),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          if (appointment.status == 'completed') const SizedBox(width: 16),  
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () => _startChat(context),
               icon: const Icon(Icons.chat_outlined),
               label: const Text('Chat with Provider'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
+              style: buttonStyle(AppColors.primary, Colors.white),
             ),
           ),
         ],
@@ -652,10 +686,9 @@ class _AppointmentDetailsModal extends StatelessWidget {
             _buildInfoRow('Cost', 'PKR ${appointment.cost.toStringAsFixed(2)}'),
             const SizedBox(height: 6),
             _buildInfoRow(
-              'Status', 
+              'Status',
               AppointmentStatusHelper.getStatusText(
-                AppointmentStatusHelper.fromString(appointment.status)
-              ),
+                  AppointmentStatusHelper.fromString(appointment.status)),
             ),
           ],
         ),
@@ -735,26 +768,136 @@ class _AppointmentDetailsModal extends StatelessWidget {
       ),
     );
   }
+}
 
-  // Widget _buildMap() {
-  //   return SizedBox(
-  //     height: 200,
-  //     child: ClipRRect(
-  //       borderRadius: BorderRadius.circular(12),
-  //       child: GoogleMap(
-  //         initialCameraPosition: CameraPosition(
-  //           target: appointment.location,
-  //           zoom: 15,
-  //         ),
-  //         markers: {
-  //           Marker(
-  //             markerId: const MarkerId('provider'),
-  //             position: appointment.location,
-  //             infoWindow: InfoWindow(title: appointment.providerName),
-  //           ),
-  //         },
-  //       ),
-  //     ),
-  //   );
-  // }
+class ReviewDialog extends StatefulWidget {
+  final String appointmentId;
+  final String providerId;
+
+  const ReviewDialog({
+    Key? key,
+    required this.appointmentId,
+    required this.providerId,
+  }) : super(key: key);
+
+  @override
+  State<ReviewDialog> createState() => _ReviewDialogState();
+}
+
+class _ReviewDialogState extends State<ReviewDialog> {
+  double _rating = 5.0;
+  final _commentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitReview() async {
+    if (_commentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a comment')),
+      );
+      return;
+    }
+
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final review = Review(
+        id: widget.appointmentId,
+        userName: '${userProvider.firstName} ${userProvider.lastName}',
+        userImage: userProvider.profileImage ?? '',
+        rating: _rating,
+        comment: _commentController.text.trim(),
+        date: DateTime.now(),
+      );
+
+      final providerService = AppwriteProviderService();
+      await providerService.submitReview(widget.providerId, review);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Review submitted successfully')),
+        );
+      }
+      // Mark the appointment as reviewed
+      await AppointmentService().markReviewSubmitted(widget.appointmentId);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Review submitted successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit review: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Rate your experience',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                return IconButton(
+                  icon: Icon(
+                    index < _rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 32,
+                  ),
+                  onPressed: () => setState(() => _rating = index + 1.0),
+                );
+              }),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _commentController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Write your review...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('CANCEL'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _submitReview,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: const Text('SUBMIT'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -7,35 +7,16 @@ import '/models/service_provider.dart';
 import '/models/review.dart';
 import '/widgets/gallery_dialog.dart';
 import '/widgets/reviews_sheet.dart';
-import '/screens/chat/chat_screen.dart';
 import 'appointment_booking_screen.dart';
 
 class ServiceProviderProfileScreen extends StatelessWidget {
   final ServiceProvider provider;
-  // Sample reviews - in production, this would come from a service
-  final List<Review> reviews = [
-    Review(
-      id: '1',
-      userName: 'John Doe',
-      userImage: 'https://randomuser.me/api/portraits/men/52.jpg',
-      rating: 5.0,
-      comment: 'Excellent service, very professional.',
-      date: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    Review(
-      id: '2',
-      userName: 'Jane Smith',
-      userImage: 'https://randomuser.me/api/portraits/women/63.jpg',
-      rating: 4.5,
-      comment: 'Great experience, would recommend.',
-      date: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-    // Add more sample reviews as needed
-  ];
+  final String selectedService; // Add this field
 
-  ServiceProviderProfileScreen({
+  const ServiceProviderProfileScreen({
     super.key,
     required this.provider,
+    required this.selectedService, // Add this parameter
   });
 
   @override
@@ -55,8 +36,6 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                 ],
                 const SizedBox(height: 24),
                 _buildAboutSection(),
-                const SizedBox(height: 24),
-                _buildExperienceSection(),
                 const SizedBox(height: 24),
                 _buildServicesSection(),
                 const SizedBox(height: 24),
@@ -365,89 +344,6 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExperienceSection() {
-    // Assuming we have experience data in the provider model
-    final experiences = [
-      {
-        'position': 'Senior Therapist',
-        'company': 'Wellness Center',
-        'duration': '2018 - Present',
-        'description': 'Lead therapy sessions and mentored junior therapists.'
-      },
-      {
-        'position': 'Therapist',
-        'company': 'City Hospital',
-        'duration': '2014 - 2018',
-        'description': 'Provided therapeutic services to patients with various conditions.'
-      },
-    ];
-
-    return _buildSectionContainer(
-      title: 'Experience',
-      icon: Icons.work_outline,
-      content: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: experiences.length,
-        itemBuilder: (context, index) {
-          final exp = experiences[index];
-          return Container(
-            margin: EdgeInsets.only(bottom: index < experiences.length - 1 ? 16 : 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.business_center_outlined,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        exp['position']!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${exp['company']} • ${exp['duration']}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        exp['description']!,
-                        style: TextStyle(
-                          color: Colors.grey[800],
-                          height: 1.5,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   Widget _buildCredentials() {
     return _buildSectionContainer(
@@ -910,6 +806,8 @@ Widget _buildLicenseSection(BuildContext context) {
   }
 
   Widget _buildReviewsSection(BuildContext context) {
+    final reviews = provider.reviewList;
+    
     return _buildSectionContainer(
       title: 'Reviews',
       icon: Icons.star_outline,
@@ -917,23 +815,35 @@ Widget _buildLicenseSection(BuildContext context) {
         children: [
           _buildRatingSummary(),
           const SizedBox(height: 20),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: min(2, reviews.length),
-            itemBuilder: (context, index) => _buildReviewItem(reviews[index]),
-          ),
-          if (reviews.length > 2)
-            TextButton(
-              onPressed: () => _showAllReviews(context),
+          if (reviews.isEmpty)
+            Center(
               child: Text(
-                'View All ${reviews.length} Reviews',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
+                'No reviews yet',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
                 ),
               ),
+            )
+          else ...[
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: min(2, reviews.length),
+              itemBuilder: (context, index) => _buildReviewItem(reviews[index]),
             ),
+            if (reviews.length > 2)
+              TextButton(
+                onPressed: () => _showAllReviews(context),
+                child: Text(
+                  'View All ${reviews.length} Reviews',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -941,66 +851,47 @@ Widget _buildLicenseSection(BuildContext context) {
 
   Widget _buildReviewItem(Review review) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: NetworkImage(review.userImage),
-                backgroundColor: Colors.grey[300],
-                child: review.userImage.isEmpty
-                    ? const Icon(Icons.person, color: Colors.white)
-                    : null,
+              const CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey,
+                child: Icon(Icons.person, color: Colors.white),
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    review.userName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${review.date.day}/${review.date.month}/${review.date.year}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              Text(
+                review.userName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      review.rating.toString(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < review.rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 14,
+                  );
+                }),
               ),
             ],
           ),
@@ -1008,9 +899,9 @@ Widget _buildLicenseSection(BuildContext context) {
           Text(
             review.comment,
             style: TextStyle(
-              color: Colors.grey[800],
+              color: Colors.grey[700],
               fontSize: 14,
-              height: 1.5,
+              height: 1.4,
             ),
           ),
         ],
@@ -1018,7 +909,33 @@ Widget _buildLicenseSection(BuildContext context) {
     );
   }
 
+  void _showAllReviews(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        builder: (_, controller) => ReviewsSheet(
+          reviews: provider.reviewList,
+          controller: controller,
+        ),
+      ),
+    );
+  }
+
   Widget _buildRatingSummary() {
+    // Calculate rating distribution
+    Map<int, int> ratingDistribution = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+    
+    for (var review in provider.reviewList) {
+      final rating = review.rating.floor();
+      if (rating >= 1 && rating <= 5) {
+        ratingDistribution[rating] = (ratingDistribution[rating] ?? 0) + 1;
+      }
+    }
+
     return Row(
       children: [
         Container(
@@ -1033,7 +950,7 @@ Widget _buildLicenseSection(BuildContext context) {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                provider.rating.toString(),
+                provider.rating.toStringAsFixed(1),
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -1044,7 +961,7 @@ Widget _buildLicenseSection(BuildContext context) {
                 mainAxisSize: MainAxisSize.min,
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < provider.rating.floor() ? Icons.star : Icons.star_border,
+                    index < provider.rating ? Icons.star : Icons.star_border,
                     color: Colors.amber,
                     size: 12,
                   );
@@ -1057,12 +974,18 @@ Widget _buildLicenseSection(BuildContext context) {
         Expanded(
           child: Column(
             children: List.generate(5, (index) {
+              final rating = 5 - index;
+              final count = ratingDistribution[rating] ?? 0;
+              final percentage = provider.reviewCount > 0
+                  ? count / provider.reviewCount
+                  : 0.0;
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
                   children: [
                     Text(
-                      '${5 - index}',
+                      '$rating',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -1074,19 +997,23 @@ Widget _buildLicenseSection(BuildContext context) {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
-                          value: index == 0
-                              ? 0.8
-                              : index == 1
-                                  ? 0.15
-                                  : 0.05,
+                          value: percentage,
                           backgroundColor: Colors.grey[200],
-                          color: index == 0
+                          color: rating > 3
                               ? Colors.green
-                              : index == 1
+                              : rating > 2
                                   ? Colors.amber
                                   : Colors.redAccent,
                           minHeight: 8,
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '($count)',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -1100,6 +1027,11 @@ Widget _buildLicenseSection(BuildContext context) {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    // Verify if the provider offers the selected service
+    if (!provider.services.contains(selectedService)) {
+      return const SizedBox(); // Don't show booking button if service isn't offered
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -1116,27 +1048,6 @@ Widget _buildLicenseSection(BuildContext context) {
       ),
       child: Row(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.chat_outlined),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatScreen(
-                    providerId: provider.id,
-                    providerName: provider.name,
-                    providerImage: provider.imageUrl,
-                  ),
-                ),
-              ),
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
               onPressed: () => Navigator.push(
@@ -1144,6 +1055,7 @@ Widget _buildLicenseSection(BuildContext context) {
                 MaterialPageRoute(
                   builder: (context) => AppointmentBookingScreen(
                     provider: provider,
+                    selectedService: selectedService, // Pass the selected service
                   ),
                 ),
               ),
@@ -1183,22 +1095,6 @@ Widget _buildLicenseSection(BuildContext context) {
       builder: (context) => GalleryDialog(
         images: provider.gallery,
         initialIndex: initialIndex,
-      ),
-    );
-  }
-
-  void _showAllReviews(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (_, controller) => ReviewsSheet(
-          reviews: reviews,
-          controller: controller,
-        ),
       ),
     );
   }

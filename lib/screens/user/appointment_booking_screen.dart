@@ -10,10 +10,12 @@ import '../../providers/user_provider.dart';
 
 class AppointmentBookingScreen extends StatefulWidget {
   final ServiceProvider provider;
+  final String selectedService; // Add this field
 
   const AppointmentBookingScreen({
     super.key,
     required this.provider,
+    required this.selectedService, // Add this parameter
   });
 
   @override
@@ -460,9 +462,10 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
         time: _selectedTime!,
         duration: _selectedDuration,
         notes: _reasonController.text,
-        destinationAddress: _addressController.text, // Update this line
+        destinationAddress: _addressController.text,
         provider: widget.provider,
         appointmentService: _appointmentService,
+        selectedService: widget.selectedService, // Pass the selected service
       ),
     );
   }
@@ -476,6 +479,7 @@ class _BookingSummary extends StatelessWidget {
   final String destinationAddress; 
   final ServiceProvider provider;
   final AppointmentService appointmentService;
+  final String selectedService; // Add this field
 
   const _BookingSummary({
     required this.date,
@@ -485,6 +489,7 @@ class _BookingSummary extends StatelessWidget {
     required this.destinationAddress,
     required this.provider,
     required this.appointmentService,
+    required this.selectedService,
   });
 
   static String formatTimeOfDay(TimeOfDay time) {
@@ -528,7 +533,7 @@ class _BookingSummary extends StatelessWidget {
         userImageURL: userImageURL ?? '',
         providerName: provider.name,
         providerImageURL: provider.imageUrl,
-        service: provider.services[0],
+        service: selectedService, // Use the selected service here
         date: date,
         startTime: formatTimeOfDay(time),
         endTime: formatTimeOfDay(endTime),
@@ -537,6 +542,7 @@ class _BookingSummary extends StatelessWidget {
         status: "pending",
         cost: totalCost,
         destinationAddress: destinationAddress,
+        hasReview: false,
       );
 
       await appointmentService.createAppointment(appointment);

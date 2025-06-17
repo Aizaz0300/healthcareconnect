@@ -162,6 +162,7 @@ class _ManageAvailabilityScreenState extends State<ManageAvailabilityScreen> {
           sunday: _availability['Sunday']!,
         );
 
+        print(updatedAvailability);
         // Update provider with new availability
         final updatedProvider = provider.copyWith(
           availability: updatedAvailability,

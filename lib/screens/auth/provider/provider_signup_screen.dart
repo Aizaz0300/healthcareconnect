@@ -64,7 +64,7 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
   File? _licenseDocument;
   String? _licenseDocumentPath;
 
-  // Gallery & Certifications (for Physiotherapists)
+  // Gallery (for Physiotherapists)
   List<File> _galleryImages = [];
   List<String> _galleryImagepath = [];
   List<File> _certifications = [];
@@ -122,28 +122,9 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
             },
           ),
           title: const Text(
-            'Healthcare Provider Registration',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            'Provider Registration',
+            style: TextStyle(fontWeight: FontWeight.w600, color: Color.fromARGB(255, 44, 44, 44)),
           ),
-          backgroundColor: AppColors.primary,
-          elevation: 0,
-          centerTitle: true,
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProviderLoginScreen(),
-                  ),
-                );
-              },
-              child: const Text(
-                'Login',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
         ),
         body: _isLoading
             ? const Center(
@@ -220,30 +201,48 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
     );
   }
 
-  Widget _buildProgressIndicator() {
-    return Container(
-      width: double.infinity,
-      height: 8,
-      color: Colors.grey[200],
-      child: Row(
-        children: [
-          Flexible(
-            flex: _currentStep + 1,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(4),
-              ),
+Widget _buildProgressIndicator() {
+  return Container(
+    width: double.infinity,
+    height: 8,
+    decoration: BoxDecoration(
+      color: Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(6),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black12,
+          blurRadius: 4,
+          offset: Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Flexible(
+          flex: _currentStep + 1,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 40, 117, 233),
+              borderRadius: BorderRadius.horizontal(left: Radius.circular(6), right: Radius.circular(_currentStep == 4 ? 6 : 0)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.6),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
           ),
-          Flexible(
-            flex: 5 - _currentStep,
-            child: Container(),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+        Flexible(
+          flex: 5 - _currentStep,
+          child: Container(),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildCurrentStep() {
     switch (_currentStep) {

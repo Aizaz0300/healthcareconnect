@@ -35,7 +35,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
 
   Future<void> _loadAppointmentsData() async {
     final AppointmentService appointmentService = AppointmentService();
-    final provider = Provider.of<ServiceProviderProvider>(context, listen: false).provider;
+    final provider =
+        Provider.of<ServiceProviderProvider>(context, listen: false).provider;
 
     try {
       final results = await Future.wait([
@@ -50,8 +51,10 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       setState(() {
         _upcomingAppointments = upcoming.toString();
         _completedAppointments = completed.toString();
-        _upcomingPercentage = total > 0 ? ((upcoming / total) * 100).round() : 0;
-        _completedPercentage = total > 0 ? ((completed / total) * 100).round() : 0;
+        _upcomingPercentage =
+            total > 0 ? ((upcoming / total) * 100).round() : 0;
+        _completedPercentage =
+            total > 0 ? ((completed / total) * 100).round() : 0;
         _isLoading = false;
       });
     } catch (error) {
@@ -69,7 +72,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              expandedHeight: 120.0,
+              expandedHeight: 90.0,
               floating: true,
               pinned: true,
               snap: true,
@@ -331,11 +334,11 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           child: _buildStatisticCard(
             title: 'Appointments',
             subtitle: 'Upcoming',
-            value: _upcomingAppointments,
+            value: _isLoading ? '-' : _upcomingAppointments,
             icon: Icons.calendar_today,
             color: Colors.blue,
             bgColor: Colors.blue.withOpacity(0.1),
-            percentage: _upcomingPercentage,
+            percentage: _isLoading ? 0 : _upcomingPercentage,
           ),
         ),
         const SizedBox(width: 16),
@@ -343,11 +346,11 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
           child: _buildStatisticCard(
             title: 'Appointments',
             subtitle: 'Completed',
-            value: _completedAppointments,
+            value: _isLoading ? '-' : _completedAppointments,
             icon: Icons.medical_services,
             color: Colors.green,
             bgColor: Colors.green.withOpacity(0.1),
-            percentage: _completedPercentage,
+            percentage: _isLoading ? 0 : _completedPercentage,
           ),
         ),
       ],
@@ -599,28 +602,31 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   }
 
   Widget _buildBottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 0,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home_outlined, 'Home', true),
-            _buildNavItem(Icons.calendar_today_outlined, 'Appointments', false),
-            _buildNavItem(Icons.message_outlined, 'Messages', false),
-            _buildNavItem(Icons.person_outline, 'Profile', false),
+    return SafeArea(
+      top: false, // We only care about the bottom here
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 0,
+              offset: const Offset(0, -2),
+            ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home_outlined, 'Home', true),
+              _buildNavItem(Icons.calendar_today_outlined, 'Appointments', false),
+              _buildNavItem(Icons.message_outlined, 'Messages', false),
+              _buildNavItem(Icons.person_outline, 'Profile', false),
+            ],
+          ),
         ),
       ),
     );

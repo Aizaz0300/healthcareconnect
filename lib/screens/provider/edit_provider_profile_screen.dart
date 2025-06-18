@@ -8,6 +8,7 @@ import '/constants/app_colors.dart';
 import '/models/service_provider.dart';
 import '/providers/service_provider_provider.dart';
 import 'dart:convert';
+import 'package:healthcare/screens/auth/provider/provider_login_screen.dart';
 
 class EditProviderProfileScreen extends StatefulWidget {
   final ServiceProvider provider;
@@ -306,6 +307,30 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
     }
   }
 
+  Future<void> _handleLogout() async {
+    try {
+      await _appwriteProviderService.logoutProvider();
+      Provider.of<ServiceProviderProvider>(context, listen: false).clearProviderData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Logged out successfully')),
+        );
+      }
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const ProviderLoginScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to logout: $e')),
+        );
+      }
+    }
+  }
+
   void _addService() {
     String? selectedService;
     final List<String> serviceOptions = [
@@ -461,6 +486,8 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
                     _buildCertificationsSection(),
                     const SizedBox(height: 16),
                     _buildLicenseInfo(),
+                    const SizedBox(height: 16),
+                    _buildLogoutButton(),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -915,6 +942,27 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: OutlinedButton(
+        onPressed: _handleLogout,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red,
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          side: const BorderSide(color: Colors.red),
+        ),
+        child: const Text(
+          'Log Out',
+          style: TextStyle(fontSize: 16),
+        ),
       ),
     );
   }

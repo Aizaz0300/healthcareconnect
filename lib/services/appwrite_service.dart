@@ -19,10 +19,10 @@ class AppwriteService {
 
   static const String _usersCollection = '67e63ee90033460e4b77';
   static const String _database = '67e6393a0009ccfe982e';
-  static const String _generalStorageBucket = '67e7e8cd002cb16f483a'; 
-  static const String _documentBucketId = '67e8a81c001a021be2be'; 
-  static const String _providerCollection = '67ef8112001cf8d36011'; 
-  
+  static const String _generalStorageBucket = '67e7e8cd002cb16f483a';
+  static const String _documentBucketId = '67e8a81c001a021be2be';
+  static const String _providerCollection = '67ef8112001cf8d36011';
+
   AppwriteService() {
     _init();
   }
@@ -54,11 +54,10 @@ class AppwriteService {
 
       // Store additional user data in database
       await databases.createDocument(
-        databaseId: _database,
-        collectionId: _usersCollection,
-        documentId: response.$id,
-        data: user.toMap()
-      );
+          databaseId: _database,
+          collectionId: _usersCollection,
+          documentId: response.$id,
+          data: user.toMap());
 
       print("Account created successfully");
     } catch (e) {
@@ -77,7 +76,7 @@ class AppwriteService {
         email: email,
         password: password,
       );
-      
+
       print("Login successful");
       // Get user data
       final userData = await databases.getDocument(
@@ -85,7 +84,7 @@ class AppwriteService {
         collectionId: _usersCollection,
         documentId: session.userId,
       );
-      
+
       print(userData);
       // Store user data in provider
       Provider.of<UserProvider>(context, listen: false)
@@ -125,14 +124,20 @@ class AppwriteService {
   Future<void> logout(BuildContext context) async {
     try {
       await account.deleteSession(sessionId: 'current');
-      // Clear user data on logout
       Provider.of<UserProvider>(context, listen: false).clearUserData();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Logged out successfully')),
+        );
+      }
     } catch (e) {
-      throw AuthException('Failed to logout. Please try again.', 'logout_error');
+      throw AuthException(
+          'Failed to logout. Please try again.', 'logout_error');
     }
   }
 
-  Future<void> updateUserProfile(String userId, Map<String, dynamic> data, BuildContext context) async {
+  Future<void> updateUserProfile(
+      String userId, Map<String, dynamic> data, BuildContext context) async {
     try {
       // Update document
       await databases.updateDocument(
@@ -171,7 +176,8 @@ class AppwriteService {
     }
   }
 
-  Future<String> uploadProfileImage(String userId, String filePath, BuildContext context) async {
+  Future<String> uploadProfileImage(
+      String userId, String filePath, BuildContext context) async {
     try {
       // Upload file
       final file = await storage.createFile(
@@ -181,7 +187,8 @@ class AppwriteService {
       );
 
       // Construct image URL
-      final imageUrl = '${ApiConstants.endPoint}/storage/buckets/$_generalStorageBucket/files/${file.$id}/view?project=${ApiConstants.projectId}';
+      final imageUrl =
+          '${ApiConstants.endPoint}/storage/buckets/$_generalStorageBucket/files/${file.$id}/view?project=${ApiConstants.projectId}';
 
       // Update user document with new image URL
       await databases.updateDocument(
@@ -202,7 +209,7 @@ class AppwriteService {
         // Update UserProvider with fresh data
         Provider.of<UserProvider>(context, listen: false)
             .setUserData(userData.data);
-        
+
         print('Profile image updated, new data: ${userData.data}');
       }
 
@@ -213,10 +220,10 @@ class AppwriteService {
     }
   }
 
-  Future<String> uploadFile(String userId,String category,String path) async {
+  Future<String> uploadFile(String userId, String category, String path) async {
     try {
-
-      String fileName = '${userId}/${category}/${DateTime.now().millisecondsSinceEpoch}_${path.split('/').last}';
+      String fileName =
+          '${userId}/${category}/${DateTime.now().millisecondsSinceEpoch}_${path.split('/').last}';
       InputFile inputFile = InputFile.fromPath(path: path, filename: fileName);
 
       final result = await storage.createFile(
@@ -237,16 +244,18 @@ class AppwriteService {
         message: 'Successfully uploaded document to $category',
       );
 
-      return storage.getFileView(
-        bucketId: _documentBucketId,
-        fileId: result.$id,
-      ).toString();
+      return storage
+          .getFileView(
+            bucketId: _documentBucketId,
+            fileId: result.$id,
+          )
+          .toString();
     } catch (e) {
       throw Exception('Failed to upload file: $e');
     }
   }
 
-  Future<FileList> getFilesByCategory(String userId,String category) async {
+  Future<FileList> getFilesByCategory(String userId, String category) async {
     try {
       final result = await storage.listFiles(
         bucketId: _documentBucketId,
@@ -289,7 +298,6 @@ class AppwriteService {
     }
   }
 
-
   Future<void> deleteFile(String fileId) async {
     try {
       await storage.deleteFile(
@@ -323,8 +331,8 @@ class AppwriteService {
         databaseId: _database,
         collectionId: _providerCollection,
         queries: [
-          Query.equal('services', [category]),  // Assuming services is an array
-          Query.equal('status', 'approved'),    // Only approved providers
+          Query.equal('services', [category]), // Assuming services is an array
+          Query.equal('status', 'approved'), // Only approved providers
         ],
       );
 
@@ -337,6 +345,3 @@ class AppwriteService {
     }
   }
 }
-
-
-

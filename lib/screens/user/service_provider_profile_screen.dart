@@ -30,10 +30,6 @@ class ServiceProviderProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildProviderInfo(),
-                if (provider.gallery.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _buildGallery(),
-                ],
                 const SizedBox(height: 24),
                 _buildAboutSection(),
                 const SizedBox(height: 24),
@@ -41,6 +37,10 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 _buildCredentials(),
                 const SizedBox(height: 24),
+                if (provider.gallery.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _buildGallery(),
+                ],
                 _buildLicenseSection(context),
                 const SizedBox(height: 24),
                 _buildAvailabilitySection(),
@@ -99,7 +99,8 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                     border: Border.all(color: AppColors.primary, width: 2),
                     image: provider.imageUrl.isNotEmpty
                         ? DecorationImage(
-                            image: CachedNetworkImageProvider(provider.imageUrl),
+                            image:
+                                CachedNetworkImageProvider(provider.imageUrl),
                             fit: BoxFit.cover,
                           )
                         : null,
@@ -226,7 +227,6 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     );
   }
 
-
   Widget _buildSectionContainer({
     required String title,
     required Widget content,
@@ -283,7 +283,7 @@ class ServiceProviderProfileScreen extends StatelessWidget {
               Icon(Icons.photo_library, color: AppColors.primary, size: 20),
               SizedBox(width: 8),
               Text(
-                'Gallery',
+                'Equipment Gallery',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -344,7 +344,6 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     );
   }
 
-
   Widget _buildCredentials() {
     return _buildSectionContainer(
       title: 'Certifications',
@@ -372,13 +371,16 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 8), // Add padding for the scrollbar
+                  padding: const EdgeInsets.only(
+                      bottom: 8), // Add padding for the scrollbar
                   itemCount: provider.certifications.length,
                   itemBuilder: (context, index) {
                     return Container(
                       width: 160,
                       margin: EdgeInsets.only(
-                        right: index != provider.certifications.length - 1 ? 12 : 0,
+                        right: index != provider.certifications.length - 1
+                            ? 12
+                            : 0,
                       ),
                       child: GestureDetector(
                         onTap: () => _showCertificateViewer(
@@ -409,15 +411,20 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                                 Image.network(
                                   provider.certifications[index],
                                   fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) {
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
                                     if (loadingProgress == null) return child;
                                     return Container(
                                       color: Colors.grey[100],
                                       child: Center(
                                         child: CircularProgressIndicator(
-                                          value: loadingProgress.expectedTotalBytes != null
-                                              ? loadingProgress.cumulativeBytesLoaded /
-                                                  loadingProgress.expectedTotalBytes!
+                                          value: loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
                                               : null,
                                           color: AppColors.primary,
                                         ),
@@ -467,7 +474,8 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showCertificateViewer(BuildContext context, String imageUrl, int initialIndex) {
+  void _showCertificateViewer(
+      BuildContext context, String imageUrl, int initialIndex) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -530,73 +538,75 @@ class ServiceProviderProfileScreen extends StatelessWidget {
       ),
     );
   }
-Widget _buildLicenseSection(BuildContext context) {
-  String formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
 
-  void _showFullImage(String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: InteractiveViewer(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Text('Image not available'),
+  Widget _buildLicenseSection(BuildContext context) {
+    String formatDate(DateTime date) {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+
+    void _showFullImage(String imageUrl) {
+      showDialog(
+        context: context,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: InteractiveViewer(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Text('Image not available'),
+                ),
               ),
             ),
           ),
         ),
+      );
+    }
+
+    return _buildSectionContainer(
+      title: 'License Information',
+      icon: Icons.badge_outlined,
+      content: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildLicenseRow('License No', provider.licenseInfo.licenseNumber),
+            _buildLicenseRow(
+                'Issued By', provider.licenseInfo.issuingAuthority),
+            _buildLicenseRow(
+                'Valid From', formatDate(provider.licenseInfo.issueDate)),
+            _buildLicenseRow(
+                'Valid Until', formatDate(provider.licenseInfo.expiryDate)),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () => _showFullImage(provider.licenseInfo.licenseImageUrl),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  provider.licenseInfo.licenseImageUrl,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Text('Image not available'),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  return _buildSectionContainer(
-    title: 'License Information',
-    icon: Icons.badge_outlined,
-    content: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildLicenseRow('License No', provider.licenseInfo.licenseNumber),
-          _buildLicenseRow('Issued By', provider.licenseInfo.issuingAuthority),
-          _buildLicenseRow('Valid From', formatDate(provider.licenseInfo.issueDate)),
-          _buildLicenseRow('Valid Until', formatDate(provider.licenseInfo.expiryDate)),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () => _showFullImage(provider.licenseInfo.licenseImageUrl),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                provider.licenseInfo.licenseImageUrl,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Text('Image not available'),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-
 
   Widget _buildLicenseRow(String label, String value, {bool isLast = false}) {
     return Padding(
@@ -677,12 +687,12 @@ Widget _buildLicenseSection(BuildContext context) {
   }
 
   Widget _buildDivider() {
-  return const Divider(
-    color: Colors.grey,
-    thickness: 0.5,
-    height: 16, 
-  );
-}
+    return const Divider(
+      color: Colors.grey,
+      thickness: 0.5,
+      height: 16,
+    );
+  }
 
   Widget _buildDaySchedule(String day, DaySchedule schedule) {
     if (!schedule.isAvailable) {
@@ -807,7 +817,7 @@ Widget _buildLicenseSection(BuildContext context) {
 
   Widget _buildReviewsSection(BuildContext context) {
     final reviews = provider.reviewList;
-    
+
     return _buildSectionContainer(
       title: 'Reviews',
       icon: Icons.star_outline,
@@ -928,7 +938,7 @@ Widget _buildLicenseSection(BuildContext context) {
   Widget _buildRatingSummary() {
     // Calculate rating distribution
     Map<int, int> ratingDistribution = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
-    
+
     for (var review in provider.reviewList) {
       final rating = review.rating.floor();
       if (rating >= 1 && rating <= 5) {
@@ -976,9 +986,8 @@ Widget _buildLicenseSection(BuildContext context) {
             children: List.generate(5, (index) {
               final rating = 5 - index;
               final count = ratingDistribution[rating] ?? 0;
-              final percentage = provider.reviewCount > 0
-                  ? count / provider.reviewCount
-                  : 0.0;
+              final percentage =
+                  provider.reviewCount > 0 ? count / provider.reviewCount : 0.0;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
@@ -1055,7 +1064,8 @@ Widget _buildLicenseSection(BuildContext context) {
                 MaterialPageRoute(
                   builder: (context) => AppointmentBookingScreen(
                     provider: provider,
-                    selectedService: selectedService, // Pass the selected service
+                    selectedService:
+                        selectedService, // Pass the selected service
                   ),
                 ),
               ),

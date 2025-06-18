@@ -168,25 +168,23 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                   color: const Color(0xFF1E293B),
                                 ),
                               ),
-
                               const SizedBox(height: 24),
-
                               _RoleCard(
                                 title: 'Patient',
-                                description: 'Find and book healthcare services',
+                                description:
+                                    'Find and book healthcare services',
                                 icon: Icons.person_outline,
                                 color: AppColors.primary,
                                 onTap: () => _navigateToLogin(context, 'user'),
                               ),
-
                               const SizedBox(height: 16),
-
                               _RoleCard(
                                 title: 'Healthcare Provider',
                                 description: 'Offer your medical services',
                                 icon: Icons.medical_services_outlined,
                                 color: const Color(0xFF43A047),
-                                onTap: () => _navigateToLogin(context, 'provider'),
+                                onTap: () =>
+                                    _navigateToLogin(context, 'provider'),
                               ),
                             ],
                           ),
@@ -289,7 +287,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -301,23 +300,38 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
 
     if (role == 'user') {
       // Check for active session
-      final appwriteService = AppwriteService();
-      final isLoggedIn = await appwriteService.isLoggedIn();
+      try {
+        final appwriteService = AppwriteService();
+        final isLoggedIn = await appwriteService.isLoggedIn();
 
-      if (!context.mounted) return;
+        if (!context.mounted) return;
 
-      if (isLoggedIn) {
-        // Get user data and update provider
-        final userData = await appwriteService.getCurrentUser();
-        if (userData != null && context.mounted) {
-          Provider.of<UserProvider>(context, listen: false)
-              .setUserData(userData);
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-          return;
+        if (isLoggedIn) {
+          // Get user data and update provider
+          final userData = await appwriteService.getCurrentUser();
+          if (userData != null && context.mounted) {
+            Provider.of<UserProvider>(context, listen: false)
+                .setUserData(userData);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+            return;
+          }
         }
+      } catch (e) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        return;
       }
     }
 
@@ -330,16 +344,27 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
         if (providerUserData != null) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const ProviderDashboardScreen()),
+            MaterialPageRoute(
+                builder: (context) => const ProviderDashboardScreen()),
           );
           return;
         }
       } catch (e) {
-        print('Error checking provider session: $e');
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        return;
       }
     }
 
-    // Handle other roles
     Widget loginScreen;
     switch (role) {
       case 'provider':
@@ -349,7 +374,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
         loginScreen = const UserLoginScreen();
         break;
     }
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => loginScreen),
@@ -376,8 +400,7 @@ class _RoleCard extends StatefulWidget {
   State<_RoleCard> createState() => _RoleCardState();
 }
 
-class _RoleCardState extends State<_RoleCard>
-    with TickerProviderStateMixin {
+class _RoleCardState extends State<_RoleCard> with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
   bool _isPressed = false;
@@ -439,13 +462,15 @@ class _RoleCardState extends State<_RoleCard>
                   color: _isPressed ? widget.color : Colors.grey.shade300,
                   width: _isPressed ? 2 : 1,
                 ),
-                boxShadow: _isPressed ? [
-                  BoxShadow(
-                    color: widget.color.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ] : null,
+                boxShadow: _isPressed
+                    ? [
+                        BoxShadow(
+                          color: widget.color.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),

@@ -47,7 +47,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _phoneController.text = userData['phone'] ?? '';
       _addressController.text = userData['address'] ?? '';
       _selectedGender = userData['gender'] ?? 'Male';
-      _dateOfBirth = DateTime.tryParse(userData['dateOfBirth'] ?? '') ?? DateTime(1990, 1, 1);
+      _dateOfBirth = DateTime.tryParse(userData['dateOfBirth'] ?? '') ??
+          DateTime(1990, 1, 1);
       _profileImage = userData['profileImage'];
     }
   }
@@ -119,7 +120,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
 
         setState(() => _profileImage = imageUrl);
-        
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -260,7 +260,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? NetworkImage(_profileImage!)
                             : null,
                         child: _profileImage == null
-                            ? const Icon(Icons.person, size: 50, color: AppColors.primary)
+                            ? const Icon(Icons.person,
+                                size: 50, color: AppColors.primary)
                             : null,
                       ),
                     ),
@@ -342,8 +343,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
             _buildGenderSelector(),
           ] else ...[
-            _buildInfoRow('Date of Birth', 
-              '${_dateOfBirth.day}/${_dateOfBirth.month}/${_dateOfBirth.year}'),
+            _buildInfoRow('Date of Birth',
+                '${_dateOfBirth.day}/${_dateOfBirth.month}/${_dateOfBirth.year}'),
             const SizedBox(height: 12),
             _buildInfoRow('Gender', _selectedGender),
           ],
@@ -382,7 +383,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
 
   Widget _buildActionButtons() {
     return Padding(
@@ -501,15 +501,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-      items: ['Male', 'Female', 'Other'].map((gender) {
+      items: ['Male', 'Female'].map((gender) {
         return DropdownMenuItem(
           value: gender,
           child: Text(gender),
         );
       }).toList(),
-      onChanged: _isEditing ? (value) {
-        setState(() => _selectedGender = value!);
-      } : null,
+      onChanged: _isEditing
+          ? (value) {
+              setState(() => _selectedGender = value!);
+            }
+          : null,
     );
   }
 

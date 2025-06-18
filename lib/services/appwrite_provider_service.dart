@@ -6,13 +6,12 @@ import '../models/service_provider.dart';
 import '../constants/api_constants.dart';
 import '../utils/auth_exceptions.dart';
 
-
 class AppwriteProviderService {
   Client client = Client();
   late Account account;
   late Databases databases;
   late Storage storage;
-  
+
   // Collection and bucket IDs
   static const String _providerCollection = '67ef8112001cf8d36011';
   static const String _database = '67e6393a0009ccfe982e';
@@ -40,37 +39,35 @@ class AppwriteProviderService {
   }) async {
     try {
       // Create Appwrite account
-    final response = await account.create(
-      userId: ID.unique(),
-      email: provider.email,
-      password: password,
-      name: provider.name,
-    );
+      final response = await account.create(
+        userId: ID.unique(),
+        email: provider.email,
+        password: password,
+        name: provider.name,
+      );
 
-   
-    final dataToSend = {
-      ...provider.toJson(),
-      'availability': jsonEncode(provider.availability.toJson()),
-      'licenseInfo': jsonEncode(provider.licenseInfo.toJson()),
-      'socialLinks': provider.socialLinks
-          .map((sm) => jsonEncode(sm.toJson()))
-          .toList(),
-      'reviewList': provider.reviewList
-          .map((rev) => jsonEncode(rev.toJson()))
-          .toList(),
-      'status': 'pending',
-    };
+      final dataToSend = {
+        ...provider.toJson(),
+        'availability': jsonEncode(provider.availability.toJson()),
+        'licenseInfo': jsonEncode(provider.licenseInfo.toJson()),
+        'socialLinks':
+            provider.socialLinks.map((sm) => jsonEncode(sm.toJson())).toList(),
+        'reviewList':
+            provider.reviewList.map((rev) => jsonEncode(rev.toJson())).toList(),
+        'status': 'pending',
+      };
 
-    // Create provider document in Appwrite database.
-    await databases.createDocument(
-      databaseId: _database,
-      collectionId: _providerCollection,
-      documentId: response.$id,
-      data: dataToSend,
-    );
-    return;
+      // Create provider document in Appwrite database.
+      await databases.createDocument(
+        databaseId: _database,
+        collectionId: _providerCollection,
+        documentId: response.$id,
+        data: dataToSend,
+      );
+      return;
     } catch (e) {
-      throw AuthException(AuthException.handleError(e), 'provider_signup_error');
+      throw AuthException(
+          AuthException.handleError(e), 'provider_signup_error');
     }
   }
 
@@ -108,9 +105,10 @@ class AppwriteProviderService {
   // File Upload Helpers
   Future<String> uploadFileforURL(String path, String folder) async {
     try {
-      final uniqueFileName = '${DateTime.now().millisecondsSinceEpoch}_${path.split('/').last}';
-      InputFile inputFile = InputFile.fromPath(path: path, filename: uniqueFileName);
-
+      final uniqueFileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${path.split('/').last}';
+      InputFile inputFile =
+          InputFile.fromPath(path: path, filename: uniqueFileName);
 
       final uploadedFile = await storage.createFile(
         bucketId: _generalStorageBucket,
@@ -118,7 +116,8 @@ class AppwriteProviderService {
         file: inputFile,
       );
 
-      final imageUrl = '${ApiConstants.endPoint}/storage/buckets/$_generalStorageBucket/files/${uploadedFile.$id}/view?project=${ApiConstants.projectId}';
+      final imageUrl =
+          '${ApiConstants.endPoint}/storage/buckets/$_generalStorageBucket/files/${uploadedFile.$id}/view?project=${ApiConstants.projectId}';
 
       return imageUrl;
     } catch (e) {
@@ -143,16 +142,17 @@ class AppwriteProviderService {
         documentId: session.userId,
       );
 
-
       switch (provider.data['status']) {
         case 'pending':
           await account.deleteSession(sessionId: 'current');
-          throw AuthException('Your account is pending approval.', 'not_approved');
+          throw AuthException(
+              'Your account is pending approval.', 'not_approved');
 
         case 'rejected':
           await account.deleteSession(sessionId: 'current');
-          throw AuthException('Your account has been rejected.', 'not_approved');
- 
+          throw AuthException(
+              'Your account has been rejected.', 'not_approved');
+
         default:
       }
 
@@ -258,7 +258,7 @@ class AppwriteProviderService {
     }
   }
 
-    Future<Map<String, dynamic>?> getCurrentUser() async {
+  Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
       final currentUser = await account.get();
       final provider = await databases.getDocument(
@@ -267,16 +267,17 @@ class AppwriteProviderService {
         documentId: currentUser.$id,
       );
 
-
       switch (provider.data['status']) {
         case 'pending':
           await account.deleteSession(sessionId: 'current');
-          throw AuthException('Your account is pending approval.', 'not_approved');
+          throw AuthException(
+              'Your account is pending approval.', 'not_approved');
 
         case 'rejected':
           await account.deleteSession(sessionId: 'current');
-          throw AuthException('Your account has been rejected.', 'not_approved');
- 
+          throw AuthException(
+              'Your account has been rejected.', 'not_approved');
+
         default:
       }
 
@@ -291,9 +292,10 @@ class AppwriteProviderService {
     try {
       // Get current provider data
       final provider = await getProvider(providerId);
-      
+
       // Calculate new rating
-      final totalRatingPoints = (provider.rating * provider.reviewCount) + review.rating;
+      final totalRatingPoints =
+          (provider.rating * provider.reviewCount) + review.rating;
       final newReviewCount = provider.reviewCount + 1;
       final newRating = totalRatingPoints / newReviewCount;
 

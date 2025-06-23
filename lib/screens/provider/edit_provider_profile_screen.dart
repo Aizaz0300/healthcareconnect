@@ -35,7 +35,8 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
   late final TextEditingController _addressController;
   late final TextEditingController _licenseNumberController;
   late final TextEditingController _issuingAuthorityController;
-  
+  late final TextEditingController _hourlyRateController;
+
   // Data
   String? _profileImageUrl;
   String? _profileImagePath;
@@ -62,6 +63,7 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
     _addressController = TextEditingController(text: widget.provider.address);
     _licenseNumberController = TextEditingController(text: widget.provider.licenseInfo.licenseNumber);
     _issuingAuthorityController = TextEditingController(text: widget.provider.licenseInfo.issuingAuthority);
+    _hourlyRateController = TextEditingController(text: widget.provider.hourlyRate.toString());
 
     // Initialize data
     _profileImageUrl = widget.provider.imageUrl;
@@ -81,6 +83,7 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
     _addressController.dispose();
     _licenseNumberController.dispose();
     _issuingAuthorityController.dispose();
+    _hourlyRateController.dispose();
     super.dispose();
   }
 
@@ -268,6 +271,7 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
         'services': _services,
         'gallery': updatedGallery,
         'certifications': updatedCertifications,
+        'hourlyRate': int.parse(_hourlyRateController.text),
       };
 
       // Update provider profile
@@ -681,6 +685,33 @@ class _EditProviderProfileScreenState extends State<EditProviderProfileScreen> {
             _addressController,
             enabled: _isEditing,
             maxLines: 2,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _hourlyRateController,
+            enabled: _isEditing,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Hourly Rate (PKR)',
+              prefixText: 'Rs. ',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: !_isEditing,
+              fillColor: _isEditing ? null : Colors.grey.shade100,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Hourly rate is required';
+              }
+              if (int.tryParse(value) == null) {
+                return 'Please enter a valid number';
+              }
+              if (int.parse(value) <= 0) {
+                return 'Hourly rate must be greater than 0';
+              }
+              return null;
+            },
           ),
         ],
       ),

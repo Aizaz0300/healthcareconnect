@@ -37,11 +37,11 @@ class ServiceProviderProfileScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 _buildCredentials(),
                 const SizedBox(height: 24),
+                _buildLicenseSection(context),
                 if (provider.gallery.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   _buildGallery(),
                 ],
-                _buildLicenseSection(context),
                 const SizedBox(height: 24),
                 _buildAvailabilitySection(),
                 const SizedBox(height: 24),
@@ -612,20 +612,30 @@ class ServiceProviderProfileScreen extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
+          Expanded(
+            flex: 3,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 5,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2, // allow wrapping or ellipsis
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ),
         ],

@@ -13,10 +13,12 @@ import 'package:healthcare/services/appointment_service.dart';
 class AppointmentDetailsScreen extends StatefulWidget {
   final Appointment appointment;
 
-  const AppointmentDetailsScreen({Key? key, required this.appointment}) : super(key: key);
+  const AppointmentDetailsScreen({Key? key, required this.appointment})
+      : super(key: key);
 
   @override
-  State<AppointmentDetailsScreen> createState() => _AppointmentDetailsScreenState();
+  State<AppointmentDetailsScreen> createState() =>
+      _AppointmentDetailsScreenState();
 }
 
 class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
@@ -47,13 +49,277 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     });
   }
 
+  bool _canBeMarkedDone() {
+    if (widget.appointment.isProviderMarkedDone) return false;
+    if (widget.appointment.status != 'confirmed') return false;
+    if (widget.appointment.status == 'disputed') return false;
+    if (widget.appointment.status == 'cancelled') return false;
+
+    final now = DateTime.now();
+    // If appointment is in the past and not today
+    if (widget.appointment.date.isBefore(now) &&
+        !_isSameDay(widget.appointment.date, now)) {
+      return true;
+    }
+
+    // If appointment is today, check if current time is after end time
+    if (_isSameDay(widget.appointment.date, now)) {
+      final endTime = parseTimeString(widget.appointment.endTime);
+      return _isTimeAfter(TimeOfDay.now(), endTime);
+    }
+
+    return false;
+  }
+
+  bool _canBeDisputed() {
+    if (widget.appointment.isProviderMarkedDone) return false;
+    if (widget.appointment.status != 'confirmed') return false;
+    if (widget.appointment.status == 'disputed') return false;
+    if (widget.appointment.status == 'cancelled') return false;
+
+    final now = DateTime.now();
+
+    // If appointment is in the past and not today
+    if (widget.appointment.date.isBefore(now) &&
+        !_isSameDay(widget.appointment.date, now)) {
+      return true;
+    }
+
+    // If appointment is today, check if current time is after end time
+    if (_isSameDay(widget.appointment.date, now)) {
+      final endTime = parseTimeString(widget.appointment.endTime);
+      return _isTimeAfter(TimeOfDay.now(), endTime);
+    }
+
+    return false;
+  }
+
+  void _showMarkAsDoneDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mark Appointment as Done'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Please confirm that:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text('• You have provided all services as scheduled',
+                style: TextStyle(color: Colors.grey[700])),
+            Text('• The client has received the service',
+                style: TextStyle(color: Colors.grey[700])),
+            Text('• Payment has been received',
+                style: TextStyle(color: Colors.grey[700])),
+            Text('• The appointment was completed successfully',
+                style: TextStyle(color: Colors.grey[700])),
+            const SizedBox(height: 16),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(color: Colors.blue),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => _handleMarkAsDone(),
+            style: TextButton.styleFrom(foregroundColor: Colors.green),
+            child: const Text('MARK AS DONE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDisputeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Raise a Dispute'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Please only raise a dispute if:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text('• The client wasn\'t on the intended location',
+                style: TextStyle(color: Colors.grey[700])),
+            Text('• There were payment issues',
+                style: TextStyle(color: Colors.grey[700])),
+            Text('• There were serious behavioral concerns',
+                style: TextStyle(color: Colors.grey[700])),
+            const SizedBox(height: 16),
+            const Text(
+              'Warning: False disputes may affect your provider status.',
+              style: TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => _handleDispute(),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('RAISE DISPUTE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleMarkAsDone() async {
+    try {
+      await _appointmentService
+          .markAppointmentAsDoneByProvider(widget.appointment.id);
+      Navigator.pop(context); // Close dialog
+      Navigator.pop(context, true); // Close screen and refresh list
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appointment marked as done')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleDispute() async {
+    try {
+      await _appointmentService.updateAppointmentStatus(
+          widget.appointment.id, 'disputed');
+      Navigator.pop(context); // Close dialog
+      Navigator.pop(context, true); // Close screen and refresh list
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dispute has been raised')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  bool _isTimeAfter(TimeOfDay time1, TimeOfDay time2) {
+    if (time1.hour > time2.hour) return true;
+    if (time1.hour < time2.hour) return false;
+    return time1.minute > time2.minute;
+  }
+
+  TimeOfDay parseTimeString(String timeStr) {
+    try {
+      final trimmed = timeStr.trim();
+      if (trimmed.toUpperCase().contains('AM') ||
+          trimmed.toUpperCase().contains('PM')) {
+        // Handle 12-hour format
+        final parts = trimmed.split(' ');
+        final timeParts = parts[0].split(':');
+        int hour = int.parse(timeParts[0]);
+        int minute = int.parse(timeParts[1]);
+
+        if (parts[1].toUpperCase() == 'PM' && hour != 12) {
+          hour += 12;
+        }
+        if (parts[1].toUpperCase() == 'AM' && hour == 12) {
+          hour = 0;
+        }
+
+        return TimeOfDay(hour: hour, minute: minute);
+      } else {
+        // Handle 24-hour format
+        final parts = trimmed.split(':');
+        return TimeOfDay(
+          hour: int.parse(parts[0]),
+          minute: int.parse(parts[1]),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error parsing time: $e');
+      return TimeOfDay.now();
+    }
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
+  Widget _buildDisputeMessage() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.red.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Appointment Under Investigation',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This appointment is currently being investigated due to a reported issue. Our team will review and get back to you soon.',
+            style: TextStyle(
+              color: Colors.red.shade700,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(widget.appointment.date);
-    final formattedTime = '${widget.appointment.startTime} - ${widget.appointment.endTime}';
+    final formattedDate =
+        DateFormat('EEEE, MMMM d, yyyy').format(widget.appointment.date);
+    final formattedTime =
+        '${widget.appointment.startTime} - ${widget.appointment.endTime}';
 
     final bool isPending = widget.appointment.status.toLowerCase() == 'pending';
-    final bool isCompleted = widget.appointment.status.toLowerCase() == 'completed';
+    final bool isCompleted =
+        widget.appointment.status.toLowerCase() == 'completed';
     final bool isActive = widget.appointment.status.toLowerCase() == 'active';
 
     return Scaffold(
@@ -74,9 +340,14 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            if (widget.appointment.status.toLowerCase() == 'disputed')
+              _buildDisputeMessage(),
+            if (widget.appointment.status.toLowerCase() == 'disputed')
+              const SizedBox(height: 12),
             _buildCard(_buildClientInfoSection()),
             const SizedBox(height: 12),
-            _buildCard(_buildAppointmentDetailsSection(formattedDate, formattedTime)),
+            _buildCard(
+                _buildAppointmentDetailsSection(formattedDate, formattedTime)),
             if (isActive) ...[
               const SizedBox(height: 12),
               _buildCard(_buildLocationSection()),
@@ -126,7 +397,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
             children: [
               Text(
                 widget.appointment.username,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
               const SizedBox(height: 8),
               _buildStatusBadge(widget.appointment.status),
@@ -137,15 +409,19 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     );
   }
 
-  Widget _buildAppointmentDetailsSection(String formattedDate, String formattedTime) {
+  Widget _buildAppointmentDetailsSection(
+      String formattedDate, String formattedTime) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailItem(Icons.location_on, 'Address', widget.appointment.destinationAddress),
-        _buildDetailItem(Icons.medical_services_outlined, 'Service', widget.appointment.service),
+        _buildDetailItem(Icons.location_on, 'Address',
+            widget.appointment.destinationAddress),
+        _buildDetailItem(Icons.medical_services_outlined, 'Service',
+            widget.appointment.service),
         _buildDetailItem(Icons.calendar_today, 'Date', formattedDate),
         _buildDetailItem(Icons.access_time, 'Time', formattedTime),
-        _buildDetailItem(Icons.attach_money, 'Fee', 'PKR ${widget.appointment.cost}'),
+        _buildDetailItem(
+            Icons.attach_money, 'Fee', 'PKR ${widget.appointment.cost}'),
         if (widget.appointment.notes.isNotEmpty) ...[
           _buildDetailItem(Icons.note, 'Notes', widget.appointment.notes),
         ],
@@ -172,7 +448,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           child: _isLoading
               ? Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
                 )
               : GoogleMap(
@@ -212,10 +489,32 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Contact Client',
+          'Actions',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
+        if (_canBeMarkedDone())
+          ElevatedButton.icon(
+            onPressed: _showMarkAsDoneDialog,
+            icon: const Icon(Icons.check_circle_outline),
+            label: const Text('Mark as Done'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              minimumSize: const Size(double.infinity, 45),
+            ),
+          ),
+        if (_canBeMarkedDone()) const SizedBox(height: 12),
+        if (_canBeDisputed())
+          ElevatedButton.icon(
+            onPressed: _showDisputeDialog,
+            icon: const Icon(Icons.warning_amber_rounded),
+            label: const Text('Raise Dispute'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              minimumSize: const Size(double.infinity, 45),
+            ),
+          ),
+        if (_canBeDisputed()) const SizedBox(height: 12),
         ElevatedButton.icon(
           onPressed: () => _launchChat(context),
           icon: const Icon(Icons.chat),
@@ -223,7 +522,6 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.teal,
             minimumSize: const Size(double.infinity, 45),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ],
@@ -239,7 +537,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: Colors.grey.shade300),
               minimumSize: const Size(0, 45),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Decline'),
           ),
@@ -251,7 +550,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               minimumSize: const Size(0, 45),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Accept'),
           ),
@@ -341,14 +641,16 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       ),
       child: Text(
         status.toUpperCase(),
-        style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            color: textColor, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
   }
 
   Future<void> _handleAccept() async {
     try {
-      await _appointmentService.updateAppointmentStatus(widget.appointment.id, 'confirmed');
+      await _appointmentService.updateAppointmentStatus(
+          widget.appointment.id, 'confirmed');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment accepted successfully')),
@@ -358,7 +660,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error accepting appointment: ${e.toString()}')),
+          SnackBar(
+              content: Text('Error accepting appointment: ${e.toString()}')),
         );
       }
     }
@@ -366,7 +669,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
 
   Future<void> _handleDecline() async {
     try {
-      await _appointmentService.updateAppointmentStatus(widget.appointment.id, 'rejected');
+      await _appointmentService.updateAppointmentStatus(
+          widget.appointment.id, 'rejected');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment declined successfully')),
@@ -376,7 +680,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error declining appointment: ${e.toString()}')),
+          SnackBar(
+              content: Text('Error declining appointment: ${e.toString()}')),
         );
       }
     }
@@ -395,14 +700,14 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       final chatService = ChatService();
       final provider = context.read<ServiceProviderProvider>().provider;
       final providerId = provider?.id;
-      
+
       if (providerId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Provider information not available')),
         );
         return;
       }
-      
+
       final chat = await chatService.getOrCreateChat(
         userId: widget.appointment.userId,
         providerId: providerId,

@@ -41,9 +41,7 @@ class AppointmentService {
         collectionId: _appointmentCollectionId,
         queries: [
           Query.equal('userId', userId),
-          Query.notEqual('status', 'cancelled'),
-          Query.notEqual('status', 'completed'),
-          Query.notEqual('status', 'rejected'),
+          Query.equal('status', ['pending','confirmed']),
 
         ],
       );
@@ -63,7 +61,7 @@ class AppointmentService {
         collectionId: _appointmentCollectionId,
         queries: [
           Query.equal('userId', userId),
-          Query.equal('status', ['cancelled', 'completed', 'rejected']),
+          Query.equal('status', ['cancelled', 'completed', 'rejected', 'disputed', 'resolved']),
         ],
       );
 
@@ -114,7 +112,7 @@ class AppointmentService {
         collectionId: _appointmentCollectionId,
         queries: [
           Query.equal('providerId', providerId),
-          Query.equal('status', ['completed', 'cancelled', 'rejected']),
+          Query.equal('status', ['completed', 'cancelled', 'rejected', 'disputed', 'resolved']),
         ],
       );
 
@@ -183,6 +181,62 @@ class AppointmentService {
       );
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<void> markAppointmentAsDoneByUser(String appointmentId) async {
+    try {
+      final userResponse = await databases.updateDocument(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        documentId: appointmentId,
+        data: {
+          'isUserMarkedDone': true,
+        },
+      );
+
+      if(userResponse.data['isProviderMarkedDone'] == true) {
+        try{
+          await databases.updateDocument(
+            databaseId: _database,
+            collectionId: _appointmentCollectionId,
+            documentId: appointmentId,
+            data: {
+              'status': 'completed',
+            },
+          );
+        } catch (e) {
+          throw 'Failed to update appointment status to completed';
+        }
+      }
+    } catch (e) {
+      throw 'Failed to mark appointment as done';
+    }
+  }
+
+  Future<void> markAppointmentAsDoneByProvider(String appointmentId) async {
+    try {
+      final providerResponse = await databases.updateDocument(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        documentId: appointmentId,
+        data: {
+          'isProviderMarkedDone': true,
+        },
+      );
+
+      if(providerResponse.data['isUserMarkedDone'] == true) {
+        await databases.updateDocument(
+          databaseId: _database,
+          collectionId: _appointmentCollectionId,
+          documentId: appointmentId,
+          data: {
+            'status': 'completed',
+          },
+        );
+      }
+    } catch (e) {
+      throw 'Failed to mark appointment as done';
     }
   }
 }

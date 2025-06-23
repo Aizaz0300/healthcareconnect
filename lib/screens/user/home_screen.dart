@@ -36,16 +36,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadStatistics() async {
+    if (!mounted) return;
+    
+    setState(() => _isLoading = true);
+    
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final userId = userProvider.userId;
-    if (userId == null) return;
+    if (userId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     try {
-      // Get upcoming appointments
       final activeAppointments = await _appointmentService.getActiveAppointments(userId);
-      // Get previous appointments
       final historyAppointments = await _appointmentService.getHistoryAppointments(userId);
-      // Get documents count
       final fileList = await _appwriteService.getFilesByUser(userId);
 
       if (mounted) {
@@ -89,15 +93,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            _buildQuickActions(context),
-            _buildServicesSection(context),
-            _buildHealthTips(),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _loadStatistics,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              _buildQuickActions(context),
+              _buildServicesSection(context),
+              _buildHealthTips(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: Container(
@@ -469,14 +477,8 @@ class _HomeScreenState extends State<HomeScreen> {
         'service': 'Elderly Care',
         'color': Colors.purple[600]!,
         'bgColor': Colors.purple[100]!,
-      },
-      {
-        'icon': Icons.local_hospital,
-        'name': 'Emergency Care',
-        'color': Colors.red[600]!,
-        'bgColor': Colors.red[100]!,
       }
-    ];
+    ] ;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

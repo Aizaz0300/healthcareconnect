@@ -69,101 +69,106 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 90.0,
-              floating: true,
-              pinned: true,
-              snap: true,
-              backgroundColor: AppColors.primary,
-              flexibleSpace: FlexibleSpaceBar(
-                title: const Text(
-                  'Provider Dashboard',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+        child: RefreshIndicator(
+          onRefresh: _loadAppointmentsData,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 90.0,
+                floating: true,
+                pinned: true,
+                snap: true,
+                backgroundColor: AppColors.primary,
+                flexibleSpace: FlexibleSpaceBar(
+                  title: const Text(
+                    'Provider Dashboard',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primary,
-                        AppColors.primary.withBlue(150),
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.primary,
+                          AppColors.primary.withBlue(150),
+                        ],
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          right: -20,
+                          bottom: -20,
+                          child: Transform.rotate(
+                            angle: -math.pi / 6,
+                            child: Icon(
+                              Icons.medical_services_outlined,
+                              size: 120,
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  child: Stack(
+                ),
+                actions: [
+                  Stack(
                     children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined,
+                            color: Colors.white),
+                        onPressed: () {
+                          // TODO: Navigate to notifications
+                        },
+                      ),
                       Positioned(
-                        right: -20,
-                        bottom: -20,
-                        child: Transform.rotate(
-                          angle: -math.pi / 6,
-                          child: Icon(
-                            Icons.medical_services_outlined,
-                            size: 120,
-                            color: Colors.white.withOpacity(0.1),
+                        right: 12,
+                        top: 12,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildProfileHeader(),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildStatisticsCards(),
+                            const SizedBox(height: 24),
+                            _buildQuickActions(context),
+                            const SizedBox(height: 24),
+                            _buildProviderTips()
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              actions: [
-                Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined,
-                          color: Colors.white),
-                      onPressed: () {
-                        // TODO: Navigate to notifications
-                      },
-                    ),
-                    Positioned(
-                      right: 12,
-                      top: 12,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfileHeader(),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildStatisticsCards(),
-                          const SizedBox(height: 24),
-                          _buildQuickActions(context),
-                          const SizedBox(height: 24),
-                          _buildProviderTips()
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(),

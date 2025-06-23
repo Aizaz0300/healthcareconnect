@@ -334,7 +334,7 @@ class _ProviderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        provider.services[0],
+                        categoryName,
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,

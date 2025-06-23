@@ -340,7 +340,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
 
   Widget _buildBookingDetails() {
     final endTime = _calculateEndTime(_selectedTime!, _selectedDuration);
-    final totalCost = _selectedDuration * 1.0;
+    final totalCost = (widget.provider.hourlyRate * _selectedDuration) / 60; // Convert hourly rate to per-minute rate
 
     return _modernCard(
       title: 'Booking Details',
@@ -471,7 +471,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
   }
 }
 
-class _BookingSummary extends StatelessWidget {
+class _BookingSummary extends StatefulWidget {  // Change to StatefulWidget
   final DateTime date;
   final TimeOfDay time;
   final int duration;
@@ -479,7 +479,7 @@ class _BookingSummary extends StatelessWidget {
   final String destinationAddress; 
   final ServiceProvider provider;
   final AppointmentService appointmentService;
-  final String selectedService; // Add this field
+  final String selectedService;
 
   const _BookingSummary({
     required this.date,
@@ -492,6 +492,14 @@ class _BookingSummary extends StatelessWidget {
     required this.selectedService,
   });
 
+  @override
+  State<_BookingSummary> createState() => _BookingSummaryState();
+}
+
+class _BookingSummaryState extends State<_BookingSummary> {
+  bool _isLoading = false;
+
+  // Move helper methods to access widget properties
   static String formatTimeOfDay(TimeOfDay time) {
     final hour = time.hour;
     final minute = time.minute.toString().padLeft(2, '0');
@@ -501,26 +509,30 @@ class _BookingSummary extends StatelessWidget {
   }
 
   TimeOfDay _calculateEndTime() {
-    int startMinutes = time.hour * 60 + time.minute;
-    int endMinutes = startMinutes + duration;
+    int startMinutes = widget.time.hour * 60 + widget.time.minute;
+    int endMinutes = startMinutes + widget.duration;
     return TimeOfDay(
       hour: endMinutes ~/ 60,
       minute: endMinutes % 60,
     );
   }
 
-  Future<void> _handleConfirm(BuildContext context) async {
+  Future<void> _handleConfirm() async {
+    if (_isLoading) return; // Prevent multiple submissions
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final endTime = _calculateEndTime();
-      final totalCost = duration * 1;
+      final totalCost = widget.provider.hourlyRate * widget.duration / 60;
       
-      // Get user data from UserProvider
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final userId = userProvider.userId;
       final userImageURL = userProvider.profileImage;
       final username = '${userProvider.firstName} ${userProvider.lastName}';
 
-      // Validate user data
       if (userId == null) {
         throw Exception('User not logged in');
       }
@@ -528,49 +540,59 @@ class _BookingSummary extends StatelessWidget {
       final appointment = Appointment(
         id: const Uuid().v4(),
         userId: userId,
-        providerId: provider.id,
+        providerId: widget.provider.id,
         username: username,
         userImageURL: userImageURL ?? '',
-        providerName: provider.name,
-        providerImageURL: provider.imageUrl,
-        service: selectedService, // Use the selected service here
-        date: date,
-        startTime: formatTimeOfDay(time),
+        providerName: widget.provider.name,
+        providerImageURL: widget.provider.imageUrl,
+        service: widget.selectedService,
+        date: widget.date,
+        startTime: formatTimeOfDay(widget.time),
         endTime: formatTimeOfDay(endTime),
-        duration: duration,
-        notes: notes,
+        duration: widget.duration,
+        notes: widget.notes,
         status: "pending",
-        cost: totalCost,
-        destinationAddress: destinationAddress,
+        cost: totalCost.toInt(),
+        destinationAddress: widget.destinationAddress,
         hasReview: false,
       );
 
-      await appointmentService.createAppointment(appointment);
+      await widget.appointmentService.createAppointment(appointment);
       
-      Navigator.pop(context); // Close bottom sheet
-      Navigator.pop(context); // Close booking screen
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Appointment booked successfully!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      if (mounted) {
+        Navigator.pop(context); // Close bottom sheet
+        Navigator.pop(context); // Close booking screen
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Appointment booked successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to book appointment: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to book appointment: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final endTime = _calculateEndTime();
-    final totalCost = duration * 1.0;
+    final totalCost = (widget.provider.hourlyRate * widget.duration) / 60;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -580,27 +602,36 @@ class _BookingSummary extends StatelessWidget {
         children: [
           const Text('Booking Summary', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          _buildInfoRow('Date', '${date.day}/${date.month}/${date.year}'),
-          _buildInfoRow('Start Time', formatTimeOfDay(time)),
+          _buildInfoRow('Date', '${widget.date.day}/${widget.date.month}/${widget.date.year}'),
+          _buildInfoRow('Start Time', formatTimeOfDay(widget.time)),
           _buildInfoRow('End Time', formatTimeOfDay(endTime)),
-          _buildInfoRow('Duration', '$duration minutes'),
-          _buildInfoRow('Cost', '\PKR${totalCost.toStringAsFixed(2)}'),
-          _buildInfoRow('Address', destinationAddress), // Add this line
-          if (notes.isNotEmpty) _buildInfoRow('Notes', notes),
+          _buildInfoRow('Duration', '${widget.duration} minutes'),
+          _buildInfoRow('Cost', 'PKR ${totalCost.toStringAsFixed(0)}'),
+          _buildInfoRow('Address', widget.destinationAddress), // Add this line
+          if (widget.notes.isNotEmpty) _buildInfoRow('Notes', widget.notes),
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _isLoading ? null : () => Navigator.pop(context),
                   child: const Text('Cancel')
                 )
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => _handleConfirm(context),
-                  child: const Text('Confirm')
+                  onPressed: _isLoading ? null : _handleConfirm,
+                  child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Confirm')
                 )
               ),
             ],

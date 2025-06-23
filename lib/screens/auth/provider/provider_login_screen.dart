@@ -305,19 +305,37 @@ class _ProviderLoginScreenState extends State<ProviderLoginScreen> {
     } catch (e) {
       if (mounted) {
         String errorMessage = 'Login failed';
+        Color backgroundColor = Colors.red;
         
-        if (e.toString().contains('not_approved')) {
-          errorMessage = 'Your account is pending approval.';
+        if (e.toString().contains('pending_approval')) {
+          errorMessage = e.toString().split('Exception: ').last;
+          backgroundColor = Colors.orange;
+        } else if (e.toString().contains('account_rejected')) {
+          errorMessage = e.toString().split('Exception: ').last;
+          backgroundColor = Colors.red;
         } else if (e.toString().contains('Invalid credentials')) {
           errorMessage = 'Invalid email or password.';
         } else if (e.toString().contains('network')) {
           errorMessage = 'Network error. Please check your connection.';
+          backgroundColor = Colors.orange;
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
+            content: Text(
+              errorMessage,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+            backgroundColor: backgroundColor,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }

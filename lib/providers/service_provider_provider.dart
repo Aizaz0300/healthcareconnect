@@ -21,16 +21,28 @@ class ServiceProviderProvider extends ChangeNotifier {
         password: password,
       );
 
-      print(providerData);
+      // Only set provider if login was successful
+      if (providerData != null) {
+        _provider = ServiceProvider.fromJson(providerData);
+      }
 
-      _provider = ServiceProvider.fromJson(providerData);
-
-      _isLoading = false;
-      notifyListeners();
     } catch (e) {
+      // Make sure to clear provider data if login fails
+      _provider = null;
+      
+      // Properly propagate the error message
+      if (e.toString().contains('pending_approval')) {
+        throw Exception('Your account is pending approval from admin');
+      } else if (e.toString().contains('account_rejected')) {
+        throw Exception('Your account has been rejected');
+      } else if (e.toString().contains('Invalid credentials')) {
+        throw Exception('Invalid email or password');
+      } else {
+        throw Exception(e.toString());
+      }
+    } finally {
       _isLoading = false;
       notifyListeners();
-      rethrow;
     }
   }
 

@@ -25,7 +25,6 @@ class ProviderSignupScreen extends StatefulWidget {
 }
 
 class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
-
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   int _currentStep = 0;
@@ -53,6 +52,7 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
   ];
   List<String> _selectedServices = [];
   final _experienceController = TextEditingController();
+  final _hourlyRateController = TextEditingController();
   final _aboutController = TextEditingController();
   final _addressController = TextEditingController();
 
@@ -74,7 +74,8 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
   List<Map<String, dynamic>> _socialLinks = [];
 
   // Availability
-  Map<String, DaySchedule> _availability = AvailabilityHelper.getInitialAvailability();
+  Map<String, DaySchedule> _availability =
+      AvailabilityHelper.getInitialAvailability();
 
   // Social Media Dialog
   String _selectedPlatform = '';
@@ -91,6 +92,7 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
     _experienceController.dispose();
     _aboutController.dispose();
     _addressController.dispose();
+    _hourlyRateController.dispose();
     _licenseNumberController.dispose();
     _issuingAuthorityController.dispose();
     _socialLinkController.dispose();
@@ -123,7 +125,9 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
           ),
           title: const Text(
             'Provider Registration',
-            style: TextStyle(fontWeight: FontWeight.w600, color: Color.fromARGB(255, 44, 44, 44)),
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color.fromARGB(255, 44, 44, 44)),
           ),
         ),
         body: _isLoading
@@ -201,48 +205,49 @@ class _ProviderSignupScreenState extends State<ProviderSignupScreen> {
     );
   }
 
-Widget _buildProgressIndicator() {
-  return Container(
-    width: double.infinity,
-    height: 8,
-    decoration: BoxDecoration(
-      color: Colors.grey.shade200,
-      borderRadius: BorderRadius.circular(6),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black12,
-          blurRadius: 4,
-          offset: Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        Flexible(
-          flex: _currentStep + 1,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 40, 117, 233),
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(6), right: Radius.circular(_currentStep == 4 ? 6 : 0)),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.6),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
+  Widget _buildProgressIndicator() {
+    return Container(
+      width: double.infinity,
+      height: 8,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Flexible(
+            flex: _currentStep + 1,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 40, 117, 233),
+                borderRadius: BorderRadius.horizontal(
+                    left: Radius.circular(6),
+                    right: Radius.circular(_currentStep == 4 ? 6 : 0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.6),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        Flexible(
-          flex: 5 - _currentStep,
-          child: Container(),
-        ),
-      ],
-    ),
-  );
-}
-
+          Flexible(
+            flex: 5 - _currentStep,
+            child: Container(),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildCurrentStep() {
     switch (_currentStep) {
@@ -351,7 +356,7 @@ Widget _buildProgressIndicator() {
                 const SizedBox(height: 16),
                 CustomInputField(
                   controller: _addressController,
-                  label: 'Personal Address',
+                  label: 'Coverage Areas e.g Johar Town',
                   icon: Icons.location_on,
                   validator: Validators.required,
                 ),
@@ -391,121 +396,128 @@ Widget _buildProgressIndicator() {
     );
   }
 
-
   Widget _buildCnicUpload() {
-  return Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    margin: const EdgeInsets.only(bottom: 24),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.credit_card, color: Theme.of(context).primaryColor),
+                const SizedBox(width: 8),
+                Text('CNIC Images',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            MediaQuery.of(context).size.width > 600
+                ? Row(
+                    children: [
+                      Expanded(
+                          child: _buildImageUploader(
+                              'Front Side', _cnicFront, true)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _buildImageUploader(
+                              'Back Side', _cnicBack, false)),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      _buildImageUploader('Front Side', _cnicFront, true),
+                      const SizedBox(height: 12),
+                      _buildImageUploader('Back Side', _cnicBack, false),
+                    ],
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageUploader(String title, File? image, bool isFront) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.credit_card, color: Theme.of(context).primaryColor),
-              const SizedBox(width: 8),
-              Text('CNIC Images', 
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          MediaQuery.of(context).size.width > 600
-              ? Row(
+          Text(title, style: TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          image != null
+              ? Stack(
+                  alignment: Alignment.topRight,
                   children: [
-                    Expanded(child: _buildImageUploader('Front Side', _cnicFront, true)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildImageUploader('Back Side', _cnicBack, false)),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.file(image,
+                          width: double.infinity,
+                          height: 140,
+                          fit: BoxFit.cover),
+                    ),
+                    InkWell(
+                      onTap: () => setState(() {
+                        if (isFront) {
+                          _cnicFront = null;
+                          _cnicFrontPath = null;
+                        } else {
+                          _cnicBack = null;
+                          _cnicBackPath = null;
+                        }
+                      }),
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.close,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
                   ],
                 )
-              : Column(
-                  children: [
-                    _buildImageUploader('Front Side', _cnicFront, true),
-                    const SizedBox(height: 12),
-                    _buildImageUploader('Back Side', _cnicBack, false),
-                  ],
+              : InkWell(
+                  onTap: () => _pickCNICImage(isFront),
+                  child: Container(
+                    height: 140,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        style: BorderStyle.solid,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_photo_alternate_outlined,
+                            color: Theme.of(context).primaryColor),
+                        const SizedBox(height: 4),
+                        Text('Upload',
+                            style: TextStyle(
+                                color: Theme.of(context).primaryColor)),
+                      ],
+                    ),
+                  ),
                 ),
         ],
       ),
-    ),
-  );
-}
-
-Widget _buildImageUploader(String title, File? image, bool isFront) {
-  return Container(
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    padding: const EdgeInsets.all(12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: TextStyle(fontWeight: FontWeight.w500)),
-        const SizedBox(height: 8),
-        image != null
-            ? Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.file(image, width: double.infinity, 
-                      height: 140, fit: BoxFit.cover),
-                  ),
-                  InkWell(
-                    onTap: () => setState(() {
-                      if (isFront) {
-                        _cnicFront = null;
-                        _cnicFrontPath = null;
-                      } else {
-                        _cnicBack = null;
-                        _cnicBackPath = null;
-                      }
-                    }),
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.close, size: 16, 
-                        color: Theme.of(context).colorScheme.error),
-                    ),
-                  ),
-                ],
-              )
-            : InkWell(
-                onTap: () => _pickCNICImage(isFront),
-                child: Container(
-                  height: 140,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: Colors.grey.shade300,
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_photo_alternate_outlined, 
-                        color: Theme.of(context).primaryColor),
-                      const SizedBox(height: 4),
-                      Text('Upload', 
-                        style: TextStyle(color: Theme.of(context).primaryColor)),
-                    ],
-                  ),
-                ),
-              ),
-      ],
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildInputField({
     required TextEditingController controller,
@@ -668,6 +680,19 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
                     ),
                   ],
                 ),
+                const SizedBox(height: 24),
+                _buildInputField(
+                  controller: _hourlyRateController,
+                  label: 'Set Your Hourly Rate in PKR',
+                  icon: Icons.payments,
+                  validator: (value) {
+                    final numericValue = value?.replaceAll('PKR ', '') ?? '';
+                    if (numericValue.isEmpty) return 'Hourly rate is required';
+                    if (double.tryParse(numericValue) == null) return 'Enter a valid number';
+                    return null;
+                  },
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
               ],
             ),
           ),
@@ -782,7 +807,8 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
                       child: DateSelector(
                         label: 'Issue Date',
                         selectedDate: _licenseIssueDate,
-                        onSelect: (date) => setState(() => _licenseIssueDate = date),
+                        onSelect: (date) =>
+                            setState(() => _licenseIssueDate = date),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -790,7 +816,8 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
                       child: DateSelector(
                         label: 'Expiry Date',
                         selectedDate: _licenseExpiryDate,
-                        onSelect: (date) => setState(() => _licenseExpiryDate = date),
+                        onSelect: (date) =>
+                            setState(() => _licenseExpiryDate = date),
                       ),
                     ),
                   ],
@@ -804,7 +831,6 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
       ],
     );
   }
-
 
   Widget _buildDocumentUploader() {
     return Column(
@@ -931,10 +957,9 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
                   schedule: _availability[day]!,
                   onAvailabilityChanged: (day, value) {
                     setState(() {
-                      _availability[day] = AvailabilityHelper.updateAvailability(
-                        _availability[day]!, 
-                        value
-                      );
+                      _availability[day] =
+                          AvailabilityHelper.updateAvailability(
+                              _availability[day]!, value);
                       if (value && _availability[day]!.timeWindows.isEmpty) {
                         _addTimeWindow(day);
                       }
@@ -962,7 +987,8 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
   void _removeTimeWindow(String day, TimeWindow window) {
     final schedule = _availability[day]!;
     setState(() {
-      _availability[day] = AvailabilityHelper.removeTimeWindow(schedule, window);
+      _availability[day] =
+          AvailabilityHelper.removeTimeWindow(schedule, window);
     });
   }
 
@@ -1364,7 +1390,6 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
     }
   }
 
-
   void _addSocialLink() {
     showDialog(
       context: context,
@@ -1504,147 +1529,153 @@ Widget _buildImageUploader(String title, File? image, bool isFront) {
   }
 
   Future<void> _submitForm() async {
-  if (!_formKey.currentState!.validate() || !_validateCurrentStep()) {
-    return;
-  }
-
-  setState(() => _isLoading = true);
-
-  try {
-   
-    String? profileImageUrl;
-    if (_profileImagePath != null) {
-      profileImageUrl = await _appwriteProviderService.uploadFileforURL(
-        _profileImagePath!,
-        'profile_images',
-      );
+    if (!_formKey.currentState!.validate() || !_validateCurrentStep()) {
+      return;
     }
 
-    List<String> cnicUrls = [];
-    if (_cnicFrontPath != null && _cnicBackPath != null) {
-      cnicUrls = await Future.wait([
-        _appwriteProviderService.uploadFileforURL(_cnicFrontPath!, 'cnic_images'),
-        _appwriteProviderService.uploadFileforURL(_cnicBackPath!, 'cnic_images'),
-      ]);
-    }
+    setState(() => _isLoading = true);
 
-    String? licenseImageUrl;
-    if (_licenseDocumentPath != null) {
-      licenseImageUrl = await _appwriteProviderService.uploadFileforURL(
-        _licenseDocumentPath!,
-        'license_documents',
-      );
-    }
-
-    List<String> galleryUrls = [];
-    if (_galleryImagepath.isNotEmpty) {
-      galleryUrls = await Future.wait(
-        _galleryImagepath.map((file) => _appwriteProviderService.uploadFileforURL(
-              file,
-              'gallery_images',
-            )),
-      );
-    }
-
-    List<String> certificationUrls = [];
-    if (_certificationPaths.isNotEmpty) {
-      certificationUrls = await Future.wait(
-        _certificationPaths.map((file) => _appwriteProviderService.uploadFileforURL(
-              file,
-              'certifications',
-            )),
-      );
-    }
-
-    // 2. Create ServiceProvider object with null-safe values
-    final serviceProvider = ServiceProvider(
-      id: '',
-      name: _nameController.text,
-      email: _emailController.text,
-      gender: _selectedGender,
-      phone: _phoneController.text,
-      imageUrl: profileImageUrl ?? '', // Provide default empty string if null
-      services: _selectedServices,
-      rating: 0,
-      reviewCount: 0,
-      experience: int.parse(_experienceController.text),
-      about: _aboutController.text,
-      availability: Availability(
-        monday: _availability['Monday']!,
-        tuesday: _availability['Tuesday']!,
-        wednesday: _availability['Wednesday']!,
-        thursday: _availability['Thursday']!,
-        friday: _availability['Friday']!,
-        saturday: _availability['Saturday']!,
-        sunday: _availability['Sunday']!,
-      ),
-      address: _addressController.text,
-      cnic: cnicUrls,
-      gallery: galleryUrls,
-      certifications: certificationUrls,
-      socialLinks: _socialLinks.map((link) => SocialMedia(
-        platform: link['platform'],
-        url: link['url'],
-        icon: link['icon'],
-      )).toList(),
-      licenseInfo: LicenseInfo(
-        licenseNumber: _licenseNumberController.text,
-        issuingAuthority: _issuingAuthorityController.text,
-        issueDate: _licenseIssueDate!,
-        expiryDate: _licenseExpiryDate!,
-        licenseImageUrl: licenseImageUrl ?? '', // Provide default empty string if null
-      ),
-      reviewList: [],
-    );
-
-    // 3. Create provider account
-    await _appwriteProviderService.createProvider(
-      provider: serviceProvider,
-      password: _passwordController.text,
-    );
-
-    if (mounted) {
-      // Clear the provider data in case there was any
-     // context.read<ServiceProviderProvider>().clearProviderData();
-      
-      // 4. Navigate to success screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const ProviderSignupSuccessScreen(),
-        ),
-      );
-    }
-  } catch (e) {
-    if (mounted) {
-      String errorMessage;
-      bool isEmailConflict = false;
-
-      if (e.toString().contains('email already exists')) {
-        errorMessage = 'An account with this email already exists. Please login or use a different email.';
-        isEmailConflict = true;
-      } else if (e.toString().contains('network')) {
-        errorMessage = 'Network error occurred. Please check your internet connection and try again.';
-      } else {
-        errorMessage = 'Registration failed. Please try again later.\n\nError: ${e.toString()}';
+    try {
+      String? profileImageUrl;
+      if (_profileImagePath != null) {
+        profileImageUrl = await _appwriteProviderService.uploadFileforURL(
+          _profileImagePath!,
+          'profile_images',
+        );
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProviderSignupFailureScreen(
-            errorMessage: errorMessage,
-            isEmailConflict: isEmailConflict,
-          ),
+      List<String> cnicUrls = [];
+      if (_cnicFrontPath != null && _cnicBackPath != null) {
+        cnicUrls = await Future.wait([
+          _appwriteProviderService.uploadFileforURL(
+              _cnicFrontPath!, 'cnic_images'),
+          _appwriteProviderService.uploadFileforURL(
+              _cnicBackPath!, 'cnic_images'),
+        ]);
+      }
+
+      String? licenseImageUrl;
+      if (_licenseDocumentPath != null) {
+        licenseImageUrl = await _appwriteProviderService.uploadFileforURL(
+          _licenseDocumentPath!,
+          'license_documents',
+        );
+      }
+
+      List<String> galleryUrls = [];
+      if (_galleryImagepath.isNotEmpty) {
+        galleryUrls = await Future.wait(
+          _galleryImagepath
+              .map((file) => _appwriteProviderService.uploadFileforURL(
+                    file,
+                    'gallery_images',
+                  )),
+        );
+      }
+
+      List<String> certificationUrls = [];
+      if (_certificationPaths.isNotEmpty) {
+        certificationUrls = await Future.wait(
+          _certificationPaths
+              .map((file) => _appwriteProviderService.uploadFileforURL(
+                    file,
+                    'certifications',
+                  )),
+        );
+      }
+
+      // 2. Create ServiceProvider object with null-safe values
+      final serviceProvider = ServiceProvider(
+        id: '',
+        name: _nameController.text,
+        email: _emailController.text,
+        gender: _selectedGender,
+        phone: _phoneController.text,
+        imageUrl: profileImageUrl ?? '', // Provide default empty string if null
+        services: _selectedServices,
+        rating: 0,
+        reviewCount: 0,
+        experience: int.parse(_experienceController.text),
+        about: _aboutController.text,
+        availability: Availability(
+          monday: _availability['Monday']!,
+          tuesday: _availability['Tuesday']!,
+          wednesday: _availability['Wednesday']!,
+          thursday: _availability['Thursday']!,
+          friday: _availability['Friday']!,
+          saturday: _availability['Saturday']!,
+          sunday: _availability['Sunday']!,
         ),
+        address: _addressController.text,
+        cnic: cnicUrls,
+        gallery: galleryUrls,
+        certifications: certificationUrls,
+        socialLinks: _socialLinks
+            .map((link) => SocialMedia(
+                  platform: link['platform'],
+                  url: link['url'],
+                  icon: link['icon'],
+                ))
+            .toList(),
+        licenseInfo: LicenseInfo(
+          licenseNumber: _licenseNumberController.text,
+          issuingAuthority: _issuingAuthorityController.text,
+          issueDate: _licenseIssueDate!,
+          expiryDate: _licenseExpiryDate!,
+          licenseImageUrl:
+              licenseImageUrl ?? '', // Provide default empty string if null
+        ),
+        reviewList: [],
+        hourlyRate: double.parse(_hourlyRateController.text.replaceAll('PKR ', ''),).toInt(),
       );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+
+      // 3. Create provider account
+      await _appwriteProviderService.createProvider(
+        provider: serviceProvider,
+        password: _passwordController.text,
+      );
+
+      if (mounted) {
+        // Clear the provider data in case there was any
+        // context.read<ServiceProviderProvider>().clearProviderData();
+
+        // 4. Navigate to success screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ProviderSignupSuccessScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage;
+        bool isEmailConflict = false;
+
+        if (e.toString().contains('email already exists')) {
+          errorMessage =
+              'An account with this email already exists. Please login or use a different email.';
+          isEmailConflict = true;
+        } else if (e.toString().contains('network')) {
+          errorMessage =
+              'Network error occurred. Please check your internet connection and try again.';
+        } else {
+          errorMessage =
+              'Registration failed. Please try again later.\n\nError: ${e.toString()}';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: isEmailConflict ? Colors.orange : Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-}
-
-  
 }

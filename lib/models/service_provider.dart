@@ -24,7 +24,8 @@ class ServiceProvider {
   final List<SocialMedia> socialLinks;         
   final List<Review> reviewList;   
   final LicenseInfo licenseInfo;     
-  final String status;       
+  final String status;
+  final int hourlyRate;  
 
   ServiceProvider({
     required this.id,
@@ -47,6 +48,7 @@ class ServiceProvider {
     this.socialLinks = const [],
     this.reviewList = const [],
     this.status = "pending",
+    required this.hourlyRate,
   });
 
   ServiceProvider copyWith({
@@ -91,6 +93,7 @@ class ServiceProvider {
       reviewList: reviewList ?? this.reviewList,
       licenseInfo: licenseInfo ?? this.licenseInfo,
       status: status ?? this.status,
+      hourlyRate: hourlyRate, 
     );
   }
 
@@ -113,6 +116,9 @@ class ServiceProvider {
       'certifications': certifications,
       'socialLinks': socialLinks.map((sm) => sm.toJson()).toList(),
       'reviewList': reviewList.map((rev) => rev.toJson()).toList(),
+      'cnic': cnic,
+      'status': status,
+      'hourlyRate': hourlyRate,
     };
   }
 
@@ -148,6 +154,7 @@ class ServiceProvider {
           jsonDecode(e as String) as Map<String, dynamic>))
           .toList(),
       status: json['status'] as String? ?? 'pending',
+      hourlyRate: (json['hourlyRate'] as num?)?.toInt() ?? 0,
     );
   }
 

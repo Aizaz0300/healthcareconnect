@@ -281,9 +281,9 @@ class _AppointmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
+      elevation: 3,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -292,18 +292,20 @@ class _AppointmentCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Provider Info Row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   ClipOval(
                     child: Image.network(
                       appointment.providerImageURL,
-                      width: 48,
-                      height: 48,
+                      width: 56,
+                      height: 56,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          width: 48,
-                          height: 48,
+                          width: 56,
+                          height: 56,
                           color: Colors.grey[300],
                           child: const Icon(Icons.person, color: Colors.grey),
                         );
@@ -318,9 +320,10 @@ class _AppointmentCard extends StatelessWidget {
                         Text(
                           appointment.providerName,
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             fontSize: 16,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -329,6 +332,7 @@ class _AppointmentCard extends StatelessWidget {
                             color: Colors.grey[600],
                             fontSize: 14,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -336,27 +340,20 @@ class _AppointmentCard extends StatelessWidget {
                   _buildStatusChip(appointment.status),
                 ],
               ),
+
               const SizedBox(height: 16),
-              Row(
+
+              // Appointment Info Row
+              Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  _buildInfoItem(
-                    Icons.calendar_today,
-                    '${appointment.date.day}/${appointment.date.month}/${appointment.date.year}',
-                  ),
-                  const SizedBox(width: 16),
-                  _buildInfoItem(
-                    Icons.access_time,
-                    '${appointment.startTime} (${appointment.duration}min)',
-                  ),
-                  const Spacer(),
-                  Text(
-                    'PKR ${appointment.cost.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppColors.primary,
-                    ),
-                  ),
+                  _buildInfoItem(Icons.calendar_today,
+                      '${appointment.date.day}/${appointment.date.month}/${appointment.date.year}'),
+                  _buildInfoItem(Icons.access_time,
+                      '${appointment.startTime} (${appointment.duration}min)'),
+                  _buildInfoItem(Icons.attach_money, 'PKR ${appointment.cost}'),
                 ],
               ),
             ],
@@ -368,14 +365,18 @@ class _AppointmentCard extends StatelessWidget {
 
   Widget _buildInfoItem(IconData icon, String text) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
+        Icon(icon, size: 16, color: const Color.fromARGB(255, 27, 8, 201)),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
+        Flexible(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 14,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -426,9 +427,111 @@ class _AppointmentDetailsModal extends StatelessWidget {
 
   bool get _canBeCancelled {
     final status = AppointmentStatusHelper.fromString(appointment.status);
-    return status == AppointmentStatus.active ||
-        status == AppointmentStatus.confirmed ||
-        status == AppointmentStatus.pending;
+    if (status != AppointmentStatus.confirmed &&
+        status != AppointmentStatus.pending) {
+      return false;
+    }
+    final now = DateTime.now();
+    if (appointment.date.isBefore(now) && !isSameDay(appointment.date, now)) {
+      return false;
+    }
+
+    // Case 1: If appointment is today and status is confirmed, don't allow cancellation
+    if (status == AppointmentStatus.confirmed &&
+        isSameDay(appointment.date, DateTime.now())) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool get _canBeDisputed {
+    final status = AppointmentStatusHelper.fromString(appointment.status);
+    if (appointment.isUserMarkedDone ||
+        status != AppointmentStatus.confirmed ||
+        status == AppointmentStatus.disputed) {
+      return false;
+    }
+    final now = DateTime.now();
+    // If appointment is in the past and not today
+    if (appointment.date.isBefore(now) && !isSameDay(appointment.date, now)) {
+      return true;
+    }
+    // If appointment is today, compare current time with end time
+    if (isSameDay(appointment.date, now)) {
+      final endTime = parseTimeString(appointment.endTime);
+      return _isTimeAfter(TimeOfDay.now(), endTime);
+    }
+
+    return false;
+  }
+
+  bool get _canBeMarkedDone {
+    final status = AppointmentStatusHelper.fromString(appointment.status);
+    if (appointment.isUserMarkedDone ||
+        status != AppointmentStatus.confirmed ||
+        status == AppointmentStatus.disputed) {
+      return false;
+    }
+    final now = DateTime.now();
+    // If appointment is in the past and not today
+    if (appointment.date.isBefore(now) && !isSameDay(appointment.date, now)) {
+      return true;
+    }
+    // If appointment is today, compare current time with end time
+    if (isSameDay(appointment.date, now)) {
+      final endTime = parseTimeString(appointment.endTime);
+      return _isTimeAfter(TimeOfDay.now(), endTime);
+    }
+    return false;
+  }
+
+  // Helper method to compare TimeOfDay
+  bool _isTimeAfter(TimeOfDay time1, TimeOfDay time2) {
+    if (time1.hour > time2.hour) return true;
+    if (time1.hour < time2.hour) return false;
+    return time1.minute > time2.minute;
+  }
+
+  // Updated time parsing method to handle both 12-hour and 24-hour formats
+  TimeOfDay parseTimeString(String timeStr) {
+    try {
+      final trimmed = timeStr.trim();
+      if (trimmed.toUpperCase().contains('AM') ||
+          trimmed.toUpperCase().contains('PM')) {
+        // Handle 12-hour format
+        final parts = trimmed.split(' ');
+        final timeParts = parts[0].split(':');
+        int hour = int.parse(timeParts[0]);
+        int minute = int.parse(timeParts[1]);
+
+        if (parts[1].toUpperCase() == 'PM' && hour != 12) {
+          hour += 12;
+        }
+        if (parts[1].toUpperCase() == 'AM' && hour == 12) {
+          hour = 0;
+        }
+
+        return TimeOfDay(hour: hour, minute: minute);
+      } else {
+        // Handle 24-hour format
+        final parts = trimmed.split(':');
+        return TimeOfDay(
+          hour: int.parse(parts[0]),
+          minute: int.parse(parts[1]),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error parsing time: $e');
+      return TimeOfDay.now();
+    }
+  }
+
+  // Helper method to check if two dates are the same day
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   void _showCancelConfirmation(BuildContext context) {
@@ -446,12 +549,140 @@ class _AppointmentDetailsModal extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // TODO: Implement appointment cancellation
+              AppointmentService()
+                  .updateAppointmentStatus(appointment.id, 'cancelled')
+                  .then((_) {
+                if (context.mounted) {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context); // Close modal
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Appointment cancelled successfully'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }).catchError((e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              });
+
               Navigator.pop(context); // Close dialog
               Navigator.pop(context); // Close modal
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('YES, CANCEL'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDisputeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Raise a Dispute'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Please only raise a dispute if:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text('• The provider didn\'t show up',
+                style: TextStyle(color: Colors.grey[700])),
+            Text(
+                '• The service was significantly different from what was promised',
+                style: TextStyle(color: Colors.grey[700])),
+            Text('• There were serious quality or safety concerns',
+                style: TextStyle(color: Colors.grey[700])),
+            const SizedBox(height: 16),
+            const Text(
+              'Warning: False disputes may result in account restrictions.',
+              style: TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await AppointmentService()
+                    .updateAppointmentStatus(appointment.id, 'disputed');
+                if (context.mounted) {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context,true); // Close modal
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Appointment marked as disputed'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('RAISE DISPUTE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMarkAsDoneDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mark Appointment as Done'),
+        content: const Text(
+          'By marking this appointment as done, you confirm that the service was provided as scheduled. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await AppointmentService()
+                    .markAppointmentAsDoneByUser(appointment.id);
+                if (context.mounted) {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context,true);  // Close modal
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Appointment marked as done'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.green),
+            child: const Text('MARK AS DONE'),
           ),
         ],
       ),
@@ -510,6 +741,51 @@ class _AppointmentDetailsModal extends StatelessWidget {
     );
   }
 
+  Widget _buildDisputeMessage() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.deepPurple.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.deepPurple,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Appointment Under Investigation',
+                style: TextStyle(
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This appointment is currently being investigated due to a reported issue. Our team will review and get back to you soon.',
+            style: TextStyle(
+              color: Colors.deepPurple.shade700,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -547,6 +823,13 @@ class _AppointmentDetailsModal extends StatelessWidget {
                   const SizedBox(height: 20),
                   _buildProviderInfo(),
                   const SizedBox(height: 20),
+                  if (appointment.status.toLowerCase() == 'disputed')
+                    Column(
+                      children: [
+                        _buildDisputeMessage(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   _buildAppointmentInfo(),
                   const SizedBox(height: 20),
                   _buildNotes(),
@@ -597,6 +880,29 @@ class _AppointmentDetailsModal extends StatelessWidget {
               ),
             ),
           if (_canBeCancelled) const SizedBox(width: 16),
+          if (_canBeDisputed)
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showDisputeDialog(context),
+                icon: const Icon(Icons.warning_amber_rounded,
+                    color: Colors.deepPurple),
+                label: const Text('Raise Dispute'),
+                style: buttonStyle(
+                    Colors.deepPurple.withOpacity(0.1), Colors.deepPurple),
+              ),
+            ),
+          if (_canBeDisputed) const SizedBox(width: 16),
+          if (_canBeMarkedDone)
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showMarkAsDoneDialog(context),
+                icon:
+                    const Icon(Icons.check_circle_outline, color: Colors.green),
+                label: const Text('Mark Done'),
+                style: buttonStyle(Colors.green.withOpacity(0.1), Colors.green),
+              ),
+            ),
+          if (_canBeMarkedDone) const SizedBox(width: 16),
           if (appointment.status == 'completed')
             FutureBuilder<bool>(
               future: AppointmentService().hasReview(appointment.id),
@@ -614,12 +920,12 @@ class _AppointmentDetailsModal extends StatelessWidget {
                 return const SizedBox.shrink();
               },
             ),
-          if (appointment.status == 'completed') const SizedBox(width: 16),  
+          if (appointment.status == 'completed') const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () => _startChat(context),
               icon: const Icon(Icons.chat_outlined),
-              label: const Text('Chat with Provider'),
+              label: const Text('Chat'),
               style: buttonStyle(AppColors.primary, Colors.white),
             ),
           ),

@@ -16,6 +16,8 @@ class Appointment {
   final int cost;
   final String destinationAddress;
   final bool hasReview;
+  final bool isUserMarkedDone;
+  final bool isProviderMarkedDone;
 
   Appointment({
     required this.id,
@@ -35,6 +37,8 @@ class Appointment {
     required this.cost,
     required this.destinationAddress,
     this.hasReview = false,
+    this.isUserMarkedDone = false,
+    this.isProviderMarkedDone = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -55,6 +59,8 @@ class Appointment {
       'cost': cost,
       'destinationAddress': destinationAddress,
       'hasReview': hasReview,
+      'isUserMarkedDone': isUserMarkedDone,
+      'isProviderMarkedDone': isProviderMarkedDone,
     };
   }
 
@@ -77,6 +83,8 @@ class Appointment {
       cost: json['cost'] as int,
       destinationAddress: json['destinationAddress'] as String,
       hasReview: json['hasReview'] as bool? ?? false,
+      isUserMarkedDone: json['isUserMarkedDone'] as bool? ?? false,
+      isProviderMarkedDone: json['isProviderMarkedDone'] as bool? ?? false,
     );
   }
 }

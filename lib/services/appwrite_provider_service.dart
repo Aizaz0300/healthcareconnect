@@ -146,17 +146,20 @@ class AppwriteProviderService {
         case 'pending':
           await account.deleteSession(sessionId: 'current');
           throw AuthException(
-              'Your account is pending approval.', 'not_approved');
+            'Your account is pending approval from admin.',
+            'pending_approval'
+          );
 
         case 'rejected':
           await account.deleteSession(sessionId: 'current');
           throw AuthException(
-              'Your account has been rejected.', 'not_approved');
+            'Your Profile  has been rejected.',
+            'account_rejected'
+          );
 
         default:
+          return provider.data;
       }
-
-      return provider.data;
     } catch (e) {
       throw AuthException(AuthException.handleError(e), 'provider_login_error');
     }

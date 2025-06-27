@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:healthcare/screens/auth/provider/provider_signup_failure_screen.dart';
 import '/models/service_provider.dart';
 import '/services/appwrite_provider_service.dart';
 import '/constants/app_colors.dart';

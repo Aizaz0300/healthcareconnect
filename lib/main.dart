@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '/theme/app_theme.dart';
-import '/screens/role_selection_screen.dart';
+import 'package:healthcare/theme/app_theme.dart';
+import 'package:healthcare/screens/role_selection_screen.dart';
 import 'services/appwrite_service.dart';
 import 'providers/user_provider.dart';
 import 'providers/service_provider_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final appwriteService = AppwriteService();
 
   runApp(

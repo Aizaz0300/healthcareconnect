@@ -11,6 +11,8 @@ import '/constants/app_colors.dart';
 import 'dart:math' as math;
 import 'package:healthcare/screens/provider/provider_chat_list_screen.dart';
 import '/widgets/action_card.dart';
+import 'package:healthcare/utils/appointment_helpers.dart';
+import 'package:healthcare/services/location_service.dart';
 
 class ProviderDashboardScreen extends StatefulWidget {
   const ProviderDashboardScreen({super.key});
@@ -21,6 +23,8 @@ class ProviderDashboardScreen extends StatefulWidget {
 }
 
 class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
+  final LocationService _locationService = LocationService();
+
   String _upcomingAppointments = "0";
   String _completedAppointments = "0";
   int _upcomingPercentage = 0;
@@ -30,7 +34,84 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeLocationService();
     _loadAppointmentsData();
+  }
+
+  Future<void> _initializeLocationService() async {
+    try {
+      final hasPermission = await _locationService.checkPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permission is required for tracking'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error initializing location service: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _checkAppointmentsForRealTimeTracking(
+      List<dynamic> upcomingAppointments) async {
+    final now = DateTime.now();
+    bool needsTracking = false;
+
+    for (var appointment in upcomingAppointments) {
+      final status = appointment.status?.toLowerCase() ?? '';
+      final appointmentDate = appointment.date;
+      final appointmentStartTimeStr = appointment.startTime;
+
+      if (status == 'confirmed' && isSameDay(appointmentDate, now)) {
+        final startTime = parseTimeString(appointmentStartTimeStr);
+        final appointmentDateTime = DateTime(
+          appointmentDate.year,
+          appointmentDate.month,
+          appointmentDate.day,
+          startTime.hour,
+          startTime.minute,
+        );
+
+        final difference = appointmentDateTime.difference(now);
+        // Check if appointment is within next hour (0-60 minutes)
+        if (difference.inMinutes >= 0 && difference.inMinutes <= 60) {
+          needsTracking = true;
+          break;
+        }
+      }
+    }
+
+    final providerData = Provider.of<ServiceProviderProvider>(context, listen: false).provider;
+    
+    try {
+      if (needsTracking && providerData?.id != null) {
+        await _locationService.checkPermission(); // Ensure we have permission
+        _locationService.startListening(providerData!.id);
+        debugPrint('Started location tracking for upcoming appointment');
+      } else if (!needsTracking) {
+        _locationService.stopListening(providerData!.id);
+        debugPrint('Stopped location tracking - no upcoming appointments');
+      }
+    } catch (e) {
+      debugPrint('Error managing location tracking: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Location tracking error: ${e.toString()}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadAppointmentsData() async {
@@ -43,6 +124,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
         appointmentService.getProviderUpcomingAppointments(provider?.id ?? ''),
         appointmentService.getProviderCompletedAppointments(provider?.id ?? ''),
       ]);
+
+      _checkAppointmentsForRealTimeTracking(results[0]);
 
       int upcoming = results[0].length;
       int completed = results[1].length;
@@ -61,6 +144,13 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
       setState(() {
         _isLoading = false;
       });
+      //show error on snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load appointments: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
       // Handle error appropriately
     }
   }
@@ -155,6 +245,7 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const SizedBox(height: 16),
                             _buildStatisticsCards(),
                             const SizedBox(height: 24),
                             _buildQuickActions(context),
@@ -627,7 +718,8 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(Icons.home_outlined, 'Home', true),
-              _buildNavItem(Icons.calendar_today_outlined, 'Appointments', false),
+              _buildNavItem(
+                  Icons.calendar_today_outlined, 'Appointments', false),
               _buildNavItem(Icons.message_outlined, 'Messages', false),
               _buildNavItem(Icons.person_outline, 'Profile', false),
             ],

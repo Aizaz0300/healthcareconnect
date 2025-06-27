@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:label="Care Connect"
         android:name="${applicationName}"
@@ -32,6 +39,22 @@
             android:value="2" />
         <meta-data android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBamzbgFrFI7AMtJtlIXpgTlZbYAMRMLHA"/>
+        <service
+            android:name="com.pravera.flutter_background_service.BackgroundService"
+            android:exported="false"
+            android:foregroundServiceType="location"
+        />
+        <service
+            android:name="com.qampus.background_location.LocationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+         <service
+            android:name="com.ekasetiawans.flutter_background_service.BackgroundService"
+            android:exported="false"
+            android:foregroundServiceType="location"
+        />   
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

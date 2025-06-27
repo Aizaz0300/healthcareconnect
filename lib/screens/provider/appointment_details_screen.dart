@@ -5,10 +5,9 @@ import 'package:healthcare/services/chat_service.dart';
 import 'package:provider/provider.dart';
 import '/constants/app_colors.dart';
 import 'package:intl/intl.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:healthcare/models/appointment.dart';
 import 'package:healthcare/services/appointment_service.dart';
+import 'package:healthcare/utils/appointment_helpers.dart';
 
 class AppointmentDetailsScreen extends StatefulWidget {
   final Appointment appointment;
@@ -23,28 +22,13 @@ class AppointmentDetailsScreen extends StatefulWidget {
 
 class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   final AppointmentService _appointmentService = AppointmentService();
-  late GoogleMapController _mapController;
-  late LatLng _appointmentLocation;
-  late Set<Marker> _markers;
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _appointmentLocation = const LatLng(37.7749, -122.4194);
-    _markers = {
-      Marker(
-        markerId: const MarkerId('appointment_location'),
-        position: _appointmentLocation,
-        infoWindow: InfoWindow(title: widget.appointment.destinationAddress),
-      ),
-    };
-
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() {});
       }
     });
   }
@@ -58,14 +42,14 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     final now = DateTime.now();
     // If appointment is in the past and not today
     if (widget.appointment.date.isBefore(now) &&
-        !_isSameDay(widget.appointment.date, now)) {
+        !isSameDay(widget.appointment.date, now)) {
       return true;
     }
 
     // If appointment is today, check if current time is after end time
-    if (_isSameDay(widget.appointment.date, now)) {
+    if (isSameDay(widget.appointment.date, now)) {
       final endTime = parseTimeString(widget.appointment.endTime);
-      return _isTimeAfter(TimeOfDay.now(), endTime);
+      return isTimeAfter(TimeOfDay.now(), endTime);
     }
 
     return false;
@@ -81,14 +65,14 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
 
     // If appointment is in the past and not today
     if (widget.appointment.date.isBefore(now) &&
-        !_isSameDay(widget.appointment.date, now)) {
+        !isSameDay(widget.appointment.date, now)) {
       return true;
     }
 
     // If appointment is today, check if current time is after end time
-    if (_isSameDay(widget.appointment.date, now)) {
+    if (isSameDay(widget.appointment.date, now)) {
       final endTime = parseTimeString(widget.appointment.endTime);
-      return _isTimeAfter(TimeOfDay.now(), endTime);
+      return isTimeAfter(TimeOfDay.now(), endTime);
     }
 
     return false;
@@ -220,51 +204,6 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     }
   }
 
-  bool _isTimeAfter(TimeOfDay time1, TimeOfDay time2) {
-    if (time1.hour > time2.hour) return true;
-    if (time1.hour < time2.hour) return false;
-    return time1.minute > time2.minute;
-  }
-
-  TimeOfDay parseTimeString(String timeStr) {
-    try {
-      final trimmed = timeStr.trim();
-      if (trimmed.toUpperCase().contains('AM') ||
-          trimmed.toUpperCase().contains('PM')) {
-        // Handle 12-hour format
-        final parts = trimmed.split(' ');
-        final timeParts = parts[0].split(':');
-        int hour = int.parse(timeParts[0]);
-        int minute = int.parse(timeParts[1]);
-
-        if (parts[1].toUpperCase() == 'PM' && hour != 12) {
-          hour += 12;
-        }
-        if (parts[1].toUpperCase() == 'AM' && hour == 12) {
-          hour = 0;
-        }
-
-        return TimeOfDay(hour: hour, minute: minute);
-      } else {
-        // Handle 24-hour format
-        final parts = trimmed.split(':');
-        return TimeOfDay(
-          hour: int.parse(parts[0]),
-          minute: int.parse(parts[1]),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error parsing time: $e');
-      return TimeOfDay.now();
-    }
-  }
-
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-        date1.month == date2.month &&
-        date1.day == date2.day;
-  }
-
   Widget _buildDisputeMessage() {
     return Container(
       width: double.infinity,
@@ -320,7 +259,6 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     final bool isPending = widget.appointment.status.toLowerCase() == 'pending';
     final bool isCompleted =
         widget.appointment.status.toLowerCase() == 'completed';
-    final bool isActive = widget.appointment.status.toLowerCase() == 'active';
 
     return Scaffold(
       appBar: AppBar(
@@ -348,10 +286,6 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
             const SizedBox(height: 12),
             _buildCard(
                 _buildAppointmentDetailsSection(formattedDate, formattedTime)),
-            if (isActive) ...[
-              const SizedBox(height: 12),
-              _buildCard(_buildLocationSection()),
-            ],
             const SizedBox(height: 12),
             _buildCard(_buildActionButtonsSection(isPending, isCompleted)),
             if (isPending) ...[
@@ -425,61 +359,6 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
         if (widget.appointment.notes.isNotEmpty) ...[
           _buildDetailItem(Icons.note, 'Notes', widget.appointment.notes),
         ],
-      ],
-    );
-  }
-
-  Widget _buildLocationSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Location',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          height: 200,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: _isLoading
-              ? Center(
-                  child: CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
-                )
-              : GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: _appointmentLocation,
-                    zoom: 15,
-                  ),
-                  markers: _markers,
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                  },
-                  myLocationEnabled: false,
-                  zoomControlsEnabled: false,
-                  mapToolbarEnabled: false,
-                ),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: _launchMaps,
-          icon: const Icon(Icons.directions),
-          label: const Text('Get Directions'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: BorderSide(color: AppColors.primary),
-            minimumSize: const Size(double.infinity, 45),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -684,14 +563,6 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
               content: Text('Error declining appointment: ${e.toString()}')),
         );
       }
-    }
-  }
-
-  void _launchMaps() async {
-    final url =
-        'https://www.google.com/maps/search/?api=1&query=${_appointmentLocation.latitude},${_appointmentLocation.longitude}';
-    if (await canLaunch(url)) {
-      await launch(url);
     }
   }
 

@@ -256,10 +256,58 @@ class _NotificationCardState extends State<_NotificationCard> {
   }
 
   String _formatTime(DateTime time) {
-    final difference = DateTime.now().difference(time);
-    if (difference.inMinutes < 1) return 'Just now';
-    if (difference.inHours < 1) return '${difference.inMinutes}m ago';
-    if (difference.inDays < 1) return '${difference.inHours}h ago';
-    return '${difference.inDays}d ago';
+    final now = DateTime.now();
+
+    // Calculate the difference in components
+    var yearsDiff = now.year - time.year;
+    var monthsDiff = now.month - time.month;
+    var daysDiff = now.day - time.day;
+    var hoursDiff = now.hour - time.hour;
+    var minutesDiff = now.minute - time.minute;
+
+
+    // Adjust for negative values in minutes
+    if (minutesDiff < 0) {
+      minutesDiff += 60;
+      hoursDiff -= 1;
+    }
+
+    // Adjust for negative values in hours
+    if (hoursDiff < 0) {
+      hoursDiff += 24;
+      daysDiff -= 1;
+    }
+
+    // Adjust for negative values in days
+    if (daysDiff < 0) {
+      final previousMonth = DateTime(now.year, now.month, 0);
+      daysDiff += previousMonth.day; // Get the days in the previous month
+      monthsDiff -= 1;
+    }
+
+    // Adjust for negative values in months
+    if (monthsDiff < 0) {
+      monthsDiff += 12;
+      yearsDiff -= 1;
+    }
+
+    // Now format the output based on the difference
+    if (yearsDiff > 0) {
+      return '$yearsDiff year${yearsDiff > 1 ? 's' : ''} ago';
+    }
+    if (monthsDiff > 0) {
+      return '$monthsDiff month${monthsDiff > 1 ? 's' : ''} ago';
+    }
+    if (daysDiff > 0) {
+      return '$daysDiff day${daysDiff > 1 ? 's' : ''} ago';
+    }
+    if (hoursDiff > 0) {
+      return '$hoursDiff hour${hoursDiff > 1 ? 's' : ''} ago';
+    }
+    if (minutesDiff > 0) {
+      return '$minutesDiff minute${minutesDiff > 1 ? 's' : ''} ago';
+    }
+    return 'Just now'; // If it's less than a minute, return "Just now"
   }
+
 }

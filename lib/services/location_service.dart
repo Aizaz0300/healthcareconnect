@@ -151,8 +151,8 @@ class LocationService {
 
           final lastUpdated = DateTime.parse(
               data['lastUpdated'] ?? DateTime.now().toIso8601String());
-          final isOnline = (data['isOnline'] ?? false) &&
-              DateTime.now().difference(lastUpdated).inMinutes < 2;
+          final isOnline = (data['isOnline'] ?? false) ||
+              DateTime.now().difference(lastUpdated).inMinutes < 1;
 
           return ProviderLocationStatus(
             location: location,

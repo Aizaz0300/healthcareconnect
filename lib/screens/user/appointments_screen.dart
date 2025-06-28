@@ -261,7 +261,14 @@ class _AppointmentsList extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => AppointmentDetailsModal(appointment: appointment),
-    );
+    ).then((_) {
+      // Refresh appointments when modal is closed
+      if (context.mounted) {
+        // Find the parent AppointmentsScreen and call _fetchAppointments
+        final state = context.findAncestorStateOfType<_AppointmentsScreenState>();
+        state?._fetchAppointments();
+      }
+    });
   }
 }
 

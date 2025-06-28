@@ -4,7 +4,7 @@ enum NotificationType {
   appointment,
   document,
   profile,
-  general, reminder, report
+  system
 }
 
 class NotificationModel {
@@ -26,6 +26,32 @@ class NotificationModel {
     this.isRead = false,
   });
 
+  Color get color {
+    switch (type) {
+      case NotificationType.appointment:
+        return Colors.blue;
+      case NotificationType.document:
+        return Colors.green;
+      case NotificationType.profile:
+        return Colors.orange;
+      case NotificationType.system:
+        return Colors.purple;
+    }
+  }
+
+  IconData get icon {
+    switch (type) {
+      case NotificationType.appointment:
+        return Icons.calendar_today;
+      case NotificationType.document:
+        return Icons.description;
+      case NotificationType.profile:
+        return Icons.person;
+      case NotificationType.system:
+        return Icons.notifications;
+    }
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,
@@ -37,61 +63,18 @@ class NotificationModel {
     };
   }
 
-  factory NotificationModel.fromMap(Map<String, dynamic> map, String id) {
+  factory NotificationModel.fromMap(Map<String, dynamic> map, String docId) {
     return NotificationModel(
-      id: id,
-      userId: map['userId'],
+      id: docId,
+      userId: map['userId'] ?? '',
       type: NotificationType.values.firstWhere(
-        (e) => e.toString().split('.').last == map['type'],
+        (e) => e.toString() == 'NotificationType.${map['type']}',
+        orElse: () => NotificationType.system,
       ),
-      title: map['title'],
-      message: map['message'],
-      createdAt: DateTime.parse(map['createdAt']),
+      title: map['title'] ?? '',
+      message: map['message'] ?? '',
+      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       isRead: map['isRead'] ?? false,
     );
-  }
-
-  NotificationModel copyWith({bool? isRead}) {
-    return NotificationModel(
-      id: id,
-      userId: userId,
-      type: type,
-      title: title,
-      message: message,
-      createdAt: createdAt,
-      isRead: isRead ?? this.isRead,
-    );
-  }
-
-  IconData get icon {
-    switch (type) {
-      case NotificationType.appointment:
-        return Icons.calendar_today;
-      case NotificationType.document:
-        return Icons.description;
-      case NotificationType.profile:
-        return Icons.person;
-      case NotificationType.general:
-        return Icons.notifications;
-      default:
-      return Icons.help;
-      
-    }
-  }
-
-  Color get color {
-    switch (type) {
-      case NotificationType.appointment:
-        return Colors.blue;
-      case NotificationType.document:
-        return Colors.green;
-      case NotificationType.profile:
-        return Colors.purple;
-      case NotificationType.general:
-        return Colors.orange;
-      default:
-      return Colors.white;  
-      
-    }
   }
 }

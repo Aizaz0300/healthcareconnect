@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:healthcare/models/service_provider.dart';
 import 'package:healthcare/screens/user/appointment_review_dialog.dart';
+import 'package:healthcare/services/appwrite_provider_service.dart';
 import 'package:healthcare/utils/appointment_user_modal_helpers.dart';
 import 'package:healthcare/models/appointment.dart';
 import 'package:healthcare/services/appointment_service.dart';
 import '/constants/app_colors.dart';
-import '/helpers/appointment_status_helper.dart';
 import 'package:healthcare/widgets/provider_location_map.dart';
 import 'package:healthcare/utils/appointment_helpers.dart';
 
@@ -107,6 +108,45 @@ class _AppointmentDetailsModal extends StatelessWidget {
     );
   }
 
+  Widget _buildProviderPhone() {
+    return FutureBuilder(
+      future: AppwriteProviderService().getProvider(appointment.providerId),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != null) {
+          final ServiceProvider provider = snapshot.data as ServiceProvider;
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 8)
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.phone_rounded,
+                      size: 18, color: Colors.green),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  provider.phone ?? 'Not available',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -171,6 +211,10 @@ class _AppointmentDetailsModal extends StatelessWidget {
 
                   // Provider Info
                   _buildProviderInfo(),
+                  const SizedBox(height: 20),
+
+                  // Provider Phone
+                  _buildProviderPhone(),
                   const SizedBox(height: 20),
 
                   // Dispute Message
@@ -486,44 +530,46 @@ class _AppointmentDetailsModal extends StatelessWidget {
   }
 
   Widget _buildBadge() {
-  return Padding(
-    padding: const EdgeInsets.only(top: 0),
-    child: Row(
-      children: [
-        const SizedBox(width: 10), // Align with other rows, or remove if not needed
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.teal.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: Colors.teal.withOpacity(0.3),
+    return Padding(
+      padding: const EdgeInsets.only(top: 0),
+      child: Row(
+        children: [
+          const SizedBox(
+              width: 10), // Align with other rows, or remove if not needed
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.teal.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.teal.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize
+                  .min, // This makes the container size adjust to the content
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 14,
+                  color: Colors.teal,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Marked Done',
+                  style: TextStyle(
+                    color: Colors.teal,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min, // This makes the container size adjust to the content
-            children: [
-              Icon(
-                Icons.check_circle_outline_rounded,
-                size: 14,
-                color: Colors.teal,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Marked Done',
-                style: TextStyle(
-                  color: Colors.teal,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildNotes() {
     return Container(

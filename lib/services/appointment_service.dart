@@ -1,10 +1,13 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:healthcare/constants/api_constants.dart';
 import '../models/appointment.dart';
+import '../models/notification_model.dart';
+import '../services/notification_service.dart';
 
 class AppointmentService {
   Client client = Client();
   late Databases databases;
+  late NotificationService _notificationService;
   static const String _appointmentCollectionId = '682e3b710004cea34582'; 
   static const String _database = '67e6393a0009ccfe982e';
 
@@ -19,6 +22,7 @@ class AppointmentService {
         .setSelfSigned(status: true); 
 
     databases = Databases(client);
+    _notificationService = NotificationService(databases: databases);
   }
 
   Future<void> createAppointment(Appointment appointment) async {
@@ -28,6 +32,14 @@ class AppointmentService {
         collectionId: _appointmentCollectionId,
         documentId: ID.unique(),
         data: appointment.toJson(),
+      );
+
+      // Send notification to provider
+      await _notificationService.createNotification(
+        userId: appointment.providerId,
+        type: NotificationType.appointment,
+        title: 'New Appointment Request',
+        message: 'You have a new appointment request from ${appointment.username}',
       );
     } catch (e) {
       rethrow;
@@ -142,6 +154,12 @@ class AppointmentService {
 
   Future<void> updateAppointmentStatus(String appointmentId, String status) async {
     try {
+      final appointment = await databases.getDocument(
+        databaseId: _database,
+        collectionId: _appointmentCollectionId,
+        documentId: appointmentId,
+      );
+
       await databases.updateDocument(
         databaseId: _database,
         collectionId: _appointmentCollectionId,
@@ -150,6 +168,55 @@ class AppointmentService {
           'status': status,
         },
       );
+
+      // Send appropriate notifications based on status
+      switch (status) {
+        case 'confirmed':
+          await _notificationService.createNotification(
+            userId: appointment.data['userId'],
+            type: NotificationType.appointment,
+            title: 'Appointment Confirmed',
+            message: 'Your appointment has been confirmed by the provider',
+          );
+          break;
+        case 'rejected':
+          await _notificationService.createNotification(
+            userId: appointment.data['userId'],
+            type: NotificationType.appointment,
+            title: 'Appointment Rejected',
+            message: 'Your appointment request has been rejected',
+          );
+          break;
+        case 'cancelled':
+          // Notify the other party about cancellation
+          String notifyUserId = appointment.data['isUserCancelled'] 
+              ? appointment.data['providerId']
+              : appointment.data['userId'];
+          
+          await _notificationService.createNotification(
+            userId: notifyUserId,
+            type: NotificationType.appointment,
+            title: 'Appointment Cancelled',
+            message: 'An appointment has been cancelled',
+          );
+          break;
+        case 'completed':
+          await _notificationService.createNotification(
+            userId: appointment.data['userId'],
+            type: NotificationType.appointment,
+            title: 'Appointment Completed',
+            message: 'Your appointment has been marked as completed. Please leave a review!',
+          );
+          break;
+        case 'disputed':
+          await _notificationService.createNotification(
+            userId: appointment.data['userId'],
+            type: NotificationType.appointment,
+            title: 'Appointment Disputed',
+            message: 'An appointment has been disputed. Please resolve the issue.',
+          );
+          break;
+      }
     } catch (e) {
       rethrow;
     }
@@ -196,18 +263,15 @@ class AppointmentService {
       );
 
       if(userResponse.data['isProviderMarkedDone'] == true) {
-        try{
-          await databases.updateDocument(
-            databaseId: _database,
-            collectionId: _appointmentCollectionId,
-            documentId: appointmentId,
-            data: {
-              'status': 'completed',
-            },
-          );
-        } catch (e) {
-          throw 'Failed to update appointment status to completed';
-        }
+        await updateAppointmentStatus(appointmentId, 'completed');
+      } else {
+        // Notify provider that user has marked as done
+        await _notificationService.createNotification(
+          userId: userResponse.data['providerId'],
+          type: NotificationType.appointment,
+          title: 'Appointment Status Update',
+          message: 'User has marked the appointment as completed',
+        );
       }
     } catch (e) {
       throw 'Failed to mark appointment as done';
@@ -226,13 +290,14 @@ class AppointmentService {
       );
 
       if(providerResponse.data['isUserMarkedDone'] == true) {
-        await databases.updateDocument(
-          databaseId: _database,
-          collectionId: _appointmentCollectionId,
-          documentId: appointmentId,
-          data: {
-            'status': 'completed',
-          },
+        await updateAppointmentStatus(appointmentId, 'completed');
+      } else {
+        // Notify user that provider has marked as done
+        await _notificationService.createNotification(
+          userId: providerResponse.data['userId'],
+          type: NotificationType.appointment,
+          title: 'Appointment Status Update',
+          message: 'Provider has marked the appointment as completed',
         );
       }
     } catch (e) {

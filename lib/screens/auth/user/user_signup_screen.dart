@@ -382,6 +382,18 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
       );
 
       if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        // Add a small delay to allow the user to see the success message
+        await Future.delayed(const Duration(seconds: 2));
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const UserLoginScreen()),

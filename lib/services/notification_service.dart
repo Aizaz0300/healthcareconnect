@@ -32,6 +32,7 @@ class NotificationService {
       );
     } catch (e) {
       print('Error creating notification: $e');
+      rethrow;
     }
   }
 
@@ -66,6 +67,7 @@ class NotificationService {
       );
     } catch (e) {
       print('Error marking notification as read: $e');
+      rethrow;
     }
   }
 
@@ -78,6 +80,7 @@ class NotificationService {
       );
     } catch (e) {
       print('Error deleting notification: $e');
+      rethrow;
     }
   }
 
@@ -104,6 +107,7 @@ class NotificationService {
       );
     } catch (e) {
       print('Error cleaning old notifications: $e');
+      rethrow;
     }
   }
 }

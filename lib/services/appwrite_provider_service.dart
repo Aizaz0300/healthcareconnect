@@ -5,12 +5,15 @@ import 'package:healthcare/models/review.dart';
 import '../models/service_provider.dart';
 import '../constants/api_constants.dart';
 import '../utils/auth_exceptions.dart';
+import '../services/notification_service.dart';
+import '../models/notification_model.dart';
 
 class AppwriteProviderService {
   Client client = Client();
   late Account account;
   late Databases databases;
   late Storage storage;
+  late NotificationService _notificationService;
 
   // Collection and bucket IDs
   static const String _providerCollection = '67ef8112001cf8d36011';
@@ -30,6 +33,7 @@ class AppwriteProviderService {
     account = Account(client);
     databases = Databases(client);
     storage = Storage(client);
+    _notificationService = NotificationService(databases: databases);
   }
 
   // Account Creation and Management
@@ -94,6 +98,14 @@ class AppwriteProviderService {
         collectionId: _providerCollection,
         documentId: providerId,
         data: updates,
+      );
+
+      // Send notification for profile update
+      await _notificationService.createNotification(
+        userId: providerId,
+        type: NotificationType.profile,
+        title: 'Profile Updated',
+        message: 'Your provider profile has been updated successfully',
       );
 
       return ServiceProvider.fromJson(document.data);
@@ -173,85 +185,6 @@ class AppwriteProviderService {
     }
   }
 
-  // Provider Status Management
-  Future<void> updateProviderStatus({
-    required String providerId,
-    required String status,
-    String? reason,
-  }) async {
-    try {
-      await databases.updateDocument(
-        databaseId: _database,
-        collectionId: _providerCollection,
-        documentId: providerId,
-        data: {
-          'status': status,
-          'statusReason': reason,
-          'statusUpdatedAt': DateTime.now().toIso8601String(),
-        },
-      );
-    } catch (e) {
-      throw Exception('Failed to update provider status: ${e.toString()}');
-    }
-  }
-
-  // Provider Search and Filtering
-  Future<List<ServiceProvider>> searchProviders({
-    String? service,
-    String? location,
-    double? rating,
-  }) async {
-    try {
-      List<String> queries = [
-        Query.equal('status', 'approved'),
-      ];
-
-      if (service != null) {
-        queries.add(Query.search('services', service));
-      }
-      if (location != null) {
-        queries.add(Query.search('address', location));
-      }
-      if (rating != null) {
-        queries.add(Query.greaterThanEqual('rating', rating));
-      }
-
-      final response = await databases.listDocuments(
-        databaseId: _database,
-        collectionId: _providerCollection,
-        queries: queries,
-      );
-
-      return response.documents
-          .map((doc) => ServiceProvider.fromJson(doc.data))
-          .toList();
-    } catch (e) {
-      throw Exception('Failed to search providers: ${e.toString()}');
-    }
-  }
-
-  // Availability Management
-
-  // Stats and Analytics
-  Future<Map<String, dynamic>> getProviderStats(String providerId) async {
-    try {
-      final document = await databases.getDocument(
-        databaseId: _database,
-        collectionId: _providerCollection,
-        documentId: providerId,
-      );
-
-      return {
-        'rating': document.data['rating'] ?? 0.0,
-        'reviewCount': document.data['reviewCount'] ?? 0,
-        'completedServices': document.data['completedServices'] ?? 0,
-        // Add more stats as needed
-      };
-    } catch (e) {
-      throw Exception('Failed to get provider stats: ${e.toString()}');
-    }
-  }
-
   Future<bool> isLoggedIn() async {
     try {
       await account.get();
@@ -318,6 +251,16 @@ class AppwriteProviderService {
         documentId: providerId,
         data: updates,
       );
+
+      // Send notification to provider about new review
+      await _notificationService.createNotification(
+        userId: providerId,
+        type: NotificationType.profile,
+        title: 'New Review Received',
+        message: 'You received a ${review.rating}-star review from ${review.userName}',
+      );
+
+
     } catch (e) {
       throw Exception('Failed to submit review: ${e.toString()}');
     }

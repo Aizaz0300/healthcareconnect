@@ -13,6 +13,7 @@ import 'package:healthcare/screens/provider/provider_chat_list_screen.dart';
 import '/widgets/action_card.dart';
 import 'package:healthcare/utils/appointment_helpers.dart';
 import 'package:healthcare/services/location_service.dart';
+import 'package:healthcare/screens/provider/provider_notifications_screen.dart';
 
 class ProviderDashboardScreen extends StatefulWidget {
   const ProviderDashboardScreen({super.key});
@@ -214,7 +215,13 @@ class _ProviderDashboardScreenState extends State<ProviderDashboardScreen> {
                         icon: const Icon(Icons.notifications_outlined,
                             color: Colors.white),
                         onPressed: () {
-                          // TODO: Navigate to notifications
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const ProviderNotificationsScreen(),
+                            ),
+                          );
                         },
                       ),
                       Positioned(

@@ -4,7 +4,6 @@ A Flutter-based mobile application for healthcare services.
 
 ## Features
 
-- [Add your key features here]
 - Modern and intuitive user interface
 - Cross-platform compatibility (iOS & Android)
 
@@ -45,14 +44,6 @@ lib/
 └── widgets/      # Reusable widgets
 ```
 
-## Development
-
-To start development:
-1. Create a new branch: `git checkout -b feature/your-feature`
-2. Make your changes
-3. Test thoroughly
-4. Create a pull request
-
 ## Build Commands
 
 ```bash
@@ -68,19 +59,3 @@ flutter run
 # Build release APK
 flutter build apk --release
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-[Add your license here]
-
-## Contact
-
-[Add your contact information]

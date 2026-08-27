@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:groq/groq.dart';
+import '/constants/api_constants.dart';
 import '/constants/app_colors.dart';
 
 class SmartCareConnect extends StatefulWidget {
@@ -17,8 +18,8 @@ class _SmartCareConnectState extends State<SmartCareConnect> {
   bool _isLoading = false;
 
   final _groq = Groq(
-    apiKey: "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",
-    model: "llama-3.3-70b-versatile",
+    apiKey: ApiConstants.groqApiKey,
+    model: ApiConstants.groqModel,
   );
 
   @override

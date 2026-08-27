@@ -8,9 +8,9 @@ class ChatService {
   Client client = Client();
   late Databases _databases;
   late Realtime _realtime;
-  static const String databaseId = '67e6393a0009ccfe982e';
-  static const String chatsCollection = '683376f400382a05c70d';
-  static const String messagesCollection = '683384040035b15e4fe1';
+  static String get databaseId => ApiConstants.databaseId;
+  static String get chatsCollection => ApiConstants.chatsCollectionId;
+  static String get messagesCollection => ApiConstants.messagesCollectionId;
   late Databases databases;
 
   ChatService() {

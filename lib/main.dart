@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:healthcare/theme/app_theme.dart';
 import 'package:healthcare/screens/role_selection_screen.dart';
@@ -8,6 +9,7 @@ import 'providers/service_provider_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
 
   final appwriteService = AppwriteService();
 

@@ -16,9 +16,9 @@ class AppwriteProviderService {
   late NotificationService _notificationService;
 
   // Collection and bucket IDs
-  static const String _providerCollection = '67ef8112001cf8d36011';
-  static const String _database = '67e6393a0009ccfe982e';
-  static const String _generalStorageBucket = '67e7e8cd002cb16f483a';
+  static String get _providerCollection => ApiConstants.providerCollectionId;
+  static String get _database => ApiConstants.databaseId;
+  static String get _generalStorageBucket => ApiConstants.generalStorageBucketId;
 
   AppwriteProviderService() {
     _init();

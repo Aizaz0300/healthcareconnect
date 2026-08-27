@@ -13,8 +13,8 @@ class LocationService {
   final Client client = Client();
   late Databases databases;
   late Realtime realtime;
-  static const String _database = '67e6393a0009ccfe982e';
-  static const String _collectionId = '6859399e0030090fb711';
+  static String get _database => ApiConstants.databaseId;
+  static String get _collectionId => ApiConstants.locationCollectionId;
 
   LocationService() {
     _init();

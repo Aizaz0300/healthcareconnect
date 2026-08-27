@@ -38,7 +38,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBamzbgFrFI7AMtJtlIXpgTlZbYAMRMLHA"/>
+            android:value="${MAPS_API_KEY}"/>
         <service
             android:name="com.pravera.flutter_background_service.BackgroundService"
             android:exported="false"

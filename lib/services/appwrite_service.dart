@@ -17,11 +17,11 @@ class AppwriteService {
   late Storage storage;
   late NotificationService _notificationService;
 
-  static const String _usersCollection = '67e63ee90033460e4b77';
-  static const String _database = '67e6393a0009ccfe982e';
-  static const String _generalStorageBucket = '67e7e8cd002cb16f483a';
-  static const String _documentBucketId = '67e8a81c001a021be2be';
-  static const String _providerCollection = '67ef8112001cf8d36011';
+  static String get _usersCollection => ApiConstants.usersCollectionId;
+  static String get _database => ApiConstants.databaseId;
+  static String get _generalStorageBucket => ApiConstants.generalStorageBucketId;
+  static String get _documentBucketId => ApiConstants.documentBucketId;
+  static String get _providerCollection => ApiConstants.providerCollectionId;
 
   AppwriteService() {
     _init();

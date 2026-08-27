@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets / environment config - never commit real values, only the .example files
+.env
+.env.*
+!.env.example
+/android/secrets.properties
+/ios/Flutter/Secrets.xcconfig

@@ -1,10 +1,11 @@
 import 'package:appwrite/appwrite.dart';
+import '../constants/api_constants.dart';
 import '../models/notification_model.dart';
 
 class NotificationService {
   final Databases databases;
-  static const String _database = '67e6393a0009ccfe982e';
-  static const String _notificationsCollection = '67e8f5a50008dc31dad3'; 
+  static String get _database => ApiConstants.databaseId;
+  static String get _notificationsCollection => ApiConstants.notificationsCollectionId;
 
   NotificationService({required this.databases});
 

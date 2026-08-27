@@ -8,8 +8,8 @@ class AppointmentService {
   Client client = Client();
   late Databases databases;
   late NotificationService _notificationService;
-  static const String _appointmentCollectionId = '682e3b710004cea34582'; 
-  static const String _database = '67e6393a0009ccfe982e';
+  static String get _appointmentCollectionId => ApiConstants.appointmentCollectionId;
+  static String get _database => ApiConstants.databaseId;
 
   AppointmentService() {
     _init();
